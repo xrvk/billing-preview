@@ -26,15 +26,11 @@ import { CostCenterAggregator, type CostCenterResult } from './pipeline/aggregat
 import { OrganizationAggregator, type OrganizationResult } from './pipeline/aggregators/organizationAggregator'
 import { UserUsageAggregator, type UserUsageResult } from './pipeline/aggregators/userUsageAggregator'
 import {
-  BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS,
-  ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS,
   calculateLicenseSummary,
   inferReportPlanScope,
   type AicIncludedCreditsOverrides,
 } from './pipeline/aicIncludedCredits'
-import { PRODUCT_BUDGET_COPILOT, PRODUCT_BUDGET_COPILOT_CLOUD_AGENT, PRODUCT_BUDGET_SPARK } from './pipeline/productClassification'
 import { runPipeline } from './pipeline/runPipeline'
-import { runBudgetSimulation, type BudgetSimulationResult } from './utils/budgetSimulation'
 import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
@@ -65,9 +61,6 @@ function App() {
   const [rowsProcessed, setRowsProcessed] = useState(0)
   const [seatOverrides, setSeatOverrides] = useState<SeatOverrides>({})
   const [budgetValues, setBudgetValues] = useState<BudgetValues>(EMPTY_BUDGET_VALUES)
-  const [budgetSimulation, setBudgetSimulation] = useState<BudgetSimulationResult | null>(null)
-  const [budgetSimulationError, setBudgetSimulationError] = useState<string | null>(null)
-  const [isApplyingBudgetSimulation, setIsApplyingBudgetSimulation] = useState(false)
   const [seatConfirmationPending, setSeatConfirmationPending] = useState(false)
   const [seatConfirmationError, setSeatConfirmationError] = useState<string | null>(null)
   const [isApplyingSeatConfirmation, setIsApplyingSeatConfirmation] = useState(false)
@@ -186,9 +179,6 @@ function App() {
     setSeatConfirmationError(null)
     setIsApplyingSeatConfirmation(false)
     setBudgetValues(EMPTY_BUDGET_VALUES)
-    setBudgetSimulation(null)
-    setBudgetSimulationError(null)
-    setIsApplyingBudgetSimulation(false)
   }, [])
 
   const handleProcess = useCallback(async (file: File) => {
@@ -266,9 +256,6 @@ function App() {
       ...current,
       [field]: value,
     }))
-    setBudgetSimulation(null)
-    setBudgetSimulationError(null)
-    setIsApplyingBudgetSimulation(false)
   }, [])
 
   const handleSeatOverridesChange = useCallback(async (
@@ -281,9 +268,6 @@ function App() {
     const runId = ++latestRunIdRef.current
     latestSimulationIdRef.current += 1
     const resolvedOverrides = resolveIncludedCreditOverrides(overrides)
-    setBudgetSimulation(null)
-    setBudgetSimulationError(null)
-    setIsApplyingBudgetSimulation(false)
     if (!onError) {
       setError(null)
     }
@@ -328,88 +312,6 @@ function App() {
       setIsApplyingSeatConfirmation(false)
     }
   }, [getDefaultSeatCounts, handleSeatOverridesChange])
-
-  const handleApplyBudgetSimulation = useCallback(async () => {
-    const file = currentFileRef.current
-    if (!file) return
-
-    const budgetReportUsers = userUsage?.users ?? []
-    const hasBudgetOrganizationContext = budgetReportUsers.some((user) => user.organizations.length > 0 || user.costCenters.length > 0)
-    const isIndividualBudgetReport = inferReportPlanScope(budgetReportUsers.length, hasBudgetOrganizationContext) === 'individual'
-    // Individual reports keep the additional-usage budget input. Enterprise reports drive the simulation purely from
-    // the universal ULB + product-level budgets — the enterprise budget is observed, not simulated.
-    const parsedAccountBudget = isIndividualBudgetReport && budgetValues.account.trim() !== '' ? Number(budgetValues.account) : undefined
-    const parsedUserBudget = !isIndividualBudgetReport && budgetValues.user.trim() !== '' ? Number(budgetValues.user) : undefined
-    const parsedProductCloudAgentBudget = !isIndividualBudgetReport && budgetValues.productCloudAgent.trim() !== '' ? Number(budgetValues.productCloudAgent) : undefined
-    const parsedProductSparkBudget = !isIndividualBudgetReport && budgetValues.productSpark.trim() !== '' ? Number(budgetValues.productSpark) : undefined
-    const parsedProductCopilotBudget = !isIndividualBudgetReport && budgetValues.productCopilot.trim() !== '' ? Number(budgetValues.productCopilot) : undefined
-
-    if (
-      parsedAccountBudget === undefined
-      && parsedUserBudget === undefined
-      && parsedProductCloudAgentBudget === undefined
-      && parsedProductSparkBudget === undefined
-      && parsedProductCopilotBudget === undefined
-    ) {
-      setBudgetSimulation(null)
-      setBudgetSimulationError(isIndividualBudgetReport
-        ? 'Enter an additional usage budget in USD before running the simulation.'
-        : 'Set a universal user-level budget or a product-level budget in USD before running the simulation.')
-      return
-    }
-
-    if (
-      (parsedAccountBudget !== undefined && !Number.isFinite(parsedAccountBudget))
-      || (parsedUserBudget !== undefined && !Number.isFinite(parsedUserBudget))
-      || (parsedProductCloudAgentBudget !== undefined && !Number.isFinite(parsedProductCloudAgentBudget))
-      || (parsedProductSparkBudget !== undefined && !Number.isFinite(parsedProductSparkBudget))
-      || (parsedProductCopilotBudget !== undefined && !Number.isFinite(parsedProductCopilotBudget))
-    ) {
-      setBudgetSimulation(null)
-      setBudgetSimulationError('Enter valid USD budget values before running the simulation.')
-      return
-    }
-
-    const simulationId = ++latestSimulationIdRef.current
-    setBudgetSimulationError(null)
-    setIsApplyingBudgetSimulation(true)
-
-    try {
-      const result = await runBudgetSimulation(
-        file,
-        {
-          accountBudgetUsd: parsedAccountBudget,
-          userBudgetUsd: parsedUserBudget,
-          productBudgetsUsd: {
-            [PRODUCT_BUDGET_COPILOT_CLOUD_AGENT]: parsedProductCloudAgentBudget,
-            [PRODUCT_BUDGET_SPARK]: parsedProductSparkBudget,
-            [PRODUCT_BUDGET_COPILOT]: parsedProductCopilotBudget,
-          },
-        },
-        resolveIncludedCreditOverrides(seatOverrides),
-      )
-
-      if (simulationId !== latestSimulationIdRef.current) return
-      setBudgetSimulation(result)
-    } catch (err) {
-      if (simulationId !== latestSimulationIdRef.current) return
-      setBudgetSimulation(null)
-      setBudgetSimulationError(err instanceof Error ? err.message : 'Failed to run the budget simulation.')
-    } finally {
-      if (simulationId === latestSimulationIdRef.current) {
-        setIsApplyingBudgetSimulation(false)
-      }
-    }
-  }, [
-    budgetValues.account,
-    budgetValues.productCloudAgent,
-    budgetValues.productCopilot,
-    budgetValues.productSpark,
-    budgetValues.user,
-    resolveIncludedCreditOverrides,
-    seatOverrides,
-    userUsage,
-  ])
 
   const preventDefault = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
@@ -486,9 +388,6 @@ function App() {
   const licenseSeatCounts = reportPlanScope === 'organization'
     ? { business: effectiveBusinessSeats, enterprise: effectiveEnterpriseSeats }
     : undefined
-  const includedAicPoolSize = reportPlanScope === 'organization'
-    ? (effectiveBusinessSeats * BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS) + (effectiveEnterpriseSeats * ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS)
-    : calculateLicenseSummary(reportUsers).totalIncludedAic
 
   const selectedUser = individualUser
     ?? (selectedUsername && userUsage
@@ -790,16 +689,11 @@ function App() {
                     currentAicGrossAmount={overviewTotals.aicGrossAmount}
                     currentAicDiscountAmount={overviewAicDiscountAmount}
                     currentAicQuantity={overviewTotals.aicQuantity}
-                    includedAicPoolSize={includedAicPoolSize}
                     licenseAmount={licenseAmount}
                     licenseSeatCounts={licenseSeatCounts}
                     upgradeRecommendation={individualUpgradeRecommendation}
                     dailyUsageData={dailyUsageData}
-                    budgetSimulation={budgetSimulation}
-                    budgetSimulationError={budgetSimulationError}
-                    isApplyingBudgetSimulation={isApplyingBudgetSimulation}
                     onBudgetValueChange={handleBudgetValueChange}
-                    onApplyBudgetSimulation={handleApplyBudgetSimulation}
                   />
                 </div>
              ) : visibleActiveView === 'guide' ? (

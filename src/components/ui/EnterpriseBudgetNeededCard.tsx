@@ -38,7 +38,7 @@ export function EnterpriseBudgetNeededCard({
       <div className="flex flex-col gap-1">
         <h3 className="m-0 text-sm font-semibold text-fg-default">Enterprise budget needed to cover this report</h3>
         <p className="m-0 text-[13px] text-fg-muted">
-          Observed from your uploaded usage. Add headroom for growth at your discretion.
+          Observed from your uploaded usage.
         </p>
       </div>
 
