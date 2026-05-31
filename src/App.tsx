@@ -35,7 +35,7 @@ import {
 import { PRODUCT_BUDGET_COPILOT, PRODUCT_BUDGET_COPILOT_CLOUD_AGENT, PRODUCT_BUDGET_SPARK } from './pipeline/productClassification'
 import { runPipeline } from './pipeline/runPipeline'
 import { runBudgetSimulation, type BudgetSimulationResult } from './utils/budgetSimulation'
-import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, getUserSpendSegmentsByUsername, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
+import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
 import { useAppVersionCheck } from './hooks/useAppVersionCheck'
@@ -336,10 +336,10 @@ function App() {
     const budgetReportUsers = userUsage?.users ?? []
     const hasBudgetOrganizationContext = budgetReportUsers.some((user) => user.organizations.length > 0 || user.costCenters.length > 0)
     const isIndividualBudgetReport = inferReportPlanScope(budgetReportUsers.length, hasBudgetOrganizationContext) === 'individual'
-    const parsedAccountBudget = budgetValues.account.trim() === '' ? undefined : Number(budgetValues.account)
+    // Individual reports keep the additional-usage budget input. Enterprise reports drive the simulation purely from
+    // the universal ULB + product-level budgets — the enterprise budget is observed, not simulated.
+    const parsedAccountBudget = isIndividualBudgetReport && budgetValues.account.trim() !== '' ? Number(budgetValues.account) : undefined
     const parsedUserBudget = !isIndividualBudgetReport && budgetValues.user.trim() !== '' ? Number(budgetValues.user) : undefined
-    const parsedPowerUserBudget = !isIndividualBudgetReport && budgetValues.powerUser.trim() !== '' ? Number(budgetValues.powerUser) : undefined
-    const parsedHeavyUserBudget = !isIndividualBudgetReport && budgetValues.heavyUser.trim() !== '' ? Number(budgetValues.heavyUser) : undefined
     const parsedProductCloudAgentBudget = !isIndividualBudgetReport && budgetValues.productCloudAgent.trim() !== '' ? Number(budgetValues.productCloudAgent) : undefined
     const parsedProductSparkBudget = !isIndividualBudgetReport && budgetValues.productSpark.trim() !== '' ? Number(budgetValues.productSpark) : undefined
     const parsedProductCopilotBudget = !isIndividualBudgetReport && budgetValues.productCopilot.trim() !== '' ? Number(budgetValues.productCopilot) : undefined
@@ -347,8 +347,6 @@ function App() {
     if (
       parsedAccountBudget === undefined
       && parsedUserBudget === undefined
-      && parsedPowerUserBudget === undefined
-      && parsedHeavyUserBudget === undefined
       && parsedProductCloudAgentBudget === undefined
       && parsedProductSparkBudget === undefined
       && parsedProductCopilotBudget === undefined
@@ -356,15 +354,13 @@ function App() {
       setBudgetSimulation(null)
       setBudgetSimulationError(isIndividualBudgetReport
         ? 'Enter an additional usage budget in USD before running the simulation.'
-        : 'Enter a user-level, account-level, or product-level budget in USD before running the simulation.')
+        : 'Set a universal user-level budget or a product-level budget in USD before running the simulation.')
       return
     }
 
     if (
       (parsedAccountBudget !== undefined && !Number.isFinite(parsedAccountBudget))
       || (parsedUserBudget !== undefined && !Number.isFinite(parsedUserBudget))
-      || (parsedPowerUserBudget !== undefined && !Number.isFinite(parsedPowerUserBudget))
-      || (parsedHeavyUserBudget !== undefined && !Number.isFinite(parsedHeavyUserBudget))
       || (parsedProductCloudAgentBudget !== undefined && !Number.isFinite(parsedProductCloudAgentBudget))
       || (parsedProductSparkBudget !== undefined && !Number.isFinite(parsedProductSparkBudget))
       || (parsedProductCopilotBudget !== undefined && !Number.isFinite(parsedProductCopilotBudget))
@@ -384,11 +380,6 @@ function App() {
         {
           accountBudgetUsd: parsedAccountBudget,
           userBudgetUsd: parsedUserBudget,
-          userBudgetUsdBySpendSegment: {
-            power: parsedPowerUserBudget,
-            heavy: parsedHeavyUserBudget,
-          },
-          userSpendSegmentsByUsername: getUserSpendSegmentsByUsername(budgetReportUsers),
           productBudgetsUsd: {
             [PRODUCT_BUDGET_COPILOT_CLOUD_AGENT]: parsedProductCloudAgentBudget,
             [PRODUCT_BUDGET_SPARK]: parsedProductSparkBudget,
@@ -411,8 +402,6 @@ function App() {
     }
   }, [
     budgetValues.account,
-    budgetValues.heavyUser,
-    budgetValues.powerUser,
     budgetValues.productCloudAgent,
     budgetValues.productCopilot,
     budgetValues.productSpark,
@@ -792,6 +781,7 @@ function App() {
                    <CostManagementView
                     budgetValues={budgetValues}
                     isIndividualReport={isIndividualReport}
+                    reportUsers={reportUsers}
                     currentPruBill={overviewPruNetAmount}
                     currentPruGrossAmount={overviewTotals.grossAmount}
                     currentPruDiscountAmount={overviewTotals.discountAmount}

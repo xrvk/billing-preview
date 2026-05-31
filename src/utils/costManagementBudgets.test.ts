@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { UserUsage } from '../pipeline/aggregators/userUsageAggregator'
 import type { UserSpendSegmentId } from './userSpendSegments'
-import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, getUserSpendSegmentsByUsername } from './costManagementBudgets'
+import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues } from './costManagementBudgets'
 
 function createUser(username: string, spendSegment: UserSpendSegmentId, aicGrossAmount: number): UserUsage {
   return {
@@ -26,27 +26,16 @@ function createUser(username: string, spendSegment: UserSpendSegmentId, aicGross
 }
 
 describe('cost management budget helpers', () => {
-  it('prepopulates group budget values from rounded-up AIC gross averages', () => {
+  it('returns blank defaults so the universal ULB starts unset', () => {
     expect(getDefaultBudgetValues([
       createUser('mona', 'typical', 22.05),
       createUser('octocat', 'typical', 16.16),
       createUser('hubot', 'heavy', 101.2),
       createUser('test-user', 'power', 774.63),
-    ])).toEqual({
-      ...EMPTY_BUDGET_VALUES,
-      user: '20',
-      heavyUser: '102',
-      powerUser: '775',
-    })
+    ])).toEqual(EMPTY_BUDGET_VALUES)
   })
 
-  it('builds a username to spend segment lookup for budget simulation', () => {
-    expect(getUserSpendSegmentsByUsername([
-      createUser('mona', 'power', 10),
-      createUser('octocat', 'typical', 5),
-    ])).toEqual({
-      mona: 'power',
-      octocat: 'typical',
-    })
+  it('returns blank defaults for an empty user list', () => {
+    expect(getDefaultBudgetValues([])).toEqual(EMPTY_BUDGET_VALUES)
   })
 })

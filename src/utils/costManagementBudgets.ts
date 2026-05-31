@@ -1,40 +1,29 @@
 import type { UserUsage } from '../pipeline/aggregators/userUsageAggregator'
-import type { UserSpendSegmentId } from './userSpendSegments'
 
-export type BudgetField = 'user' | 'powerUser' | 'heavyUser' | 'account' | 'productCloudAgent' | 'productSpark' | 'productCopilot'
+export type BudgetField = 'user' | 'account' | 'productCloudAgent' | 'productSpark' | 'productCopilot'
 
 export type BudgetValues = Record<BudgetField, string>
 
 export const EMPTY_BUDGET_VALUES: BudgetValues = {
   user: '',
-  powerUser: '',
-  heavyUser: '',
   account: '',
   productCloudAgent: '',
   productSpark: '',
   productCopilot: '',
 }
 
-function ceilAverageBudget(users: UserUsage[], selector: (user: UserUsage) => number): string {
-  if (users.length === 0) return ''
-
-  const average = users.reduce((sum, user) => sum + selector(user), 0) / users.length
-  return String(Math.ceil(average))
-}
-
+/**
+ * Initial values for the cost-management budget inputs.
+ *
+ * We deliberately do not prepopulate the universal user-level budget from
+ * historical data — there is no defensible "right" starting value, and seeding
+ * one would nudge admins toward a number that looks blessed by the product.
+ * The slider in the universal ULB control starts at "Not configured" / blank
+ * for the same reason. The `users` argument is accepted for symmetry with
+ * future per-user defaulting (e.g. seeding individual ULB overrides) without
+ * forcing every call site to change again.
+ */
 export function getDefaultBudgetValues(users: UserUsage[]): BudgetValues {
-  const powerUsers = users.filter((user) => user.spendSegment === 'power')
-  const heavyUsers = users.filter((user) => user.spendSegment === 'heavy')
-  const typicalUsers = users.filter((user) => user.spendSegment === 'typical')
-
-  return {
-    ...EMPTY_BUDGET_VALUES,
-    user: ceilAverageBudget(typicalUsers, (user) => user.totals.aicGrossAmount),
-    heavyUser: ceilAverageBudget(heavyUsers, (user) => user.totals.aicGrossAmount),
-    powerUser: ceilAverageBudget(powerUsers, (user) => user.totals.aicGrossAmount),
-  }
-}
-
-export function getUserSpendSegmentsByUsername(users: UserUsage[]): Record<string, UserSpendSegmentId> {
-  return Object.fromEntries(users.map((user) => [user.username, user.spendSegment]))
+  void users
+  return { ...EMPTY_BUDGET_VALUES }
 }
