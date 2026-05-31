@@ -34,6 +34,7 @@ import { runPipeline } from './pipeline/runPipeline'
 import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
+import { clearSeatCountUrlParams, readSeatCountUrlParams } from './utils/seatCountUrlParams'
 import { useAppVersionCheck } from './hooks/useAppVersionCheck'
 
 type Status = 'idle' | 'processing' | 'done'
@@ -64,6 +65,7 @@ function App() {
   const [seatConfirmationPending, setSeatConfirmationPending] = useState(false)
   const [seatConfirmationError, setSeatConfirmationError] = useState<string | null>(null)
   const [isApplyingSeatConfirmation, setIsApplyingSeatConfirmation] = useState(false)
+  const [seatConfirmationInitial, setSeatConfirmationInitial] = useState<{ business?: number; enterprise?: number }>({})
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const currentFileRef = useRef<File | null>(null)
   const latestRunIdRef = useRef(0)
@@ -143,8 +145,8 @@ function App() {
     }
   }, [])
 
-  const getDefaultSeatCounts = useCallback(() => {
-    const summary = calculateLicenseSummary(userUsage?.users ?? [])
+  const computeDefaultSeatCountsFromUsers = useCallback((users: UserUsageResult['users']) => {
+    const summary = calculateLicenseSummary(users)
     return {
       business: normalizeSeatCount(
         summary.rows.find((row) => row.label === 'Copilot Business')?.users ?? 0,
@@ -155,7 +157,11 @@ function App() {
         0,
       ),
     }
-  }, [userUsage])
+  }, [])
+
+  const getDefaultSeatCounts = useCallback(() => {
+    return computeDefaultSeatCountsFromUsers(userUsage?.users ?? [])
+  }, [computeDefaultSeatCountsFromUsers, userUsage])
 
   const resetReportState = useCallback(({ status, fileName }: { status: Status; fileName: string | null }) => {
     setStatus(status)
@@ -178,41 +184,9 @@ function App() {
     setSeatConfirmationPending(false)
     setSeatConfirmationError(null)
     setIsApplyingSeatConfirmation(false)
+    setSeatConfirmationInitial({})
     setBudgetValues(EMPTY_BUDGET_VALUES)
   }, [])
-
-  const handleProcess = useCallback(async (file: File) => {
-    currentFileRef.current = file
-    const runId = ++latestRunIdRef.current
-    latestSimulationIdRef.current += 1
-    resetReportState({ status: 'processing', fileName: file.name })
-
-    try {
-      const nextData = await buildReportData(file, {}, (progressInfo) => {
-        if (runId !== latestRunIdRef.current) return
-        setRowsProcessed(progressInfo.rowsProcessed)
-        setProgress(progressInfo.progressPercent)
-      })
-
-      if (runId !== latestRunIdRef.current) return
-
-      setProgress(100)
-      applyProcessedData(nextData)
-      setBudgetValues(getDefaultBudgetValues(nextData.userUsage.users))
-      setSeatConfirmationError(null)
-      const processedUsers = nextData.userUsage.users
-      const hasOrgContext = processedUsers.some((user) => user.organizations.length > 0 || user.costCenters.length > 0)
-      const processedPlanScope = inferReportPlanScope(processedUsers.length, hasOrgContext)
-      setSeatConfirmationPending(processedPlanScope === 'organization')
-      setStatus('done')
-    } catch (err) {
-      if (runId !== latestRunIdRef.current) return
-      setError(err instanceof Error ? err.message : 'Failed to process the report.')
-      setStatus('idle')
-      setProgress(0)
-      setRowsProcessed(0)
-    }
-  }, [applyProcessedData, buildReportData, resetReportState])
 
   const resolveIncludedCreditOverrides = useCallback((overrides: SeatOverrides): AicIncludedCreditsOverrides => {
     if (overrides.business === undefined && overrides.enterprise === undefined) {
@@ -290,6 +264,95 @@ function App() {
       return false
     }
   }, [applyProcessedData, buildReportData, compactSeatOverrides, resolveIncludedCreditOverrides])
+
+  const handleProcess = useCallback(async (file: File) => {
+    currentFileRef.current = file
+    const runId = ++latestRunIdRef.current
+    latestSimulationIdRef.current += 1
+    resetReportState({ status: 'processing', fileName: file.name })
+
+    try {
+      const nextData = await buildReportData(file, {}, (progressInfo) => {
+        if (runId !== latestRunIdRef.current) return
+        setRowsProcessed(progressInfo.rowsProcessed)
+        setProgress(progressInfo.progressPercent)
+      })
+
+      if (runId !== latestRunIdRef.current) return
+
+      setProgress(100)
+      applyProcessedData(nextData)
+      setBudgetValues(getDefaultBudgetValues(nextData.userUsage.users))
+      setSeatConfirmationError(null)
+      const processedUsers = nextData.userUsage.users
+      const hasOrgContext = processedUsers.some((user) => user.organizations.length > 0 || user.costCenters.length > 0)
+      const processedPlanScope = inferReportPlanScope(processedUsers.length, hasOrgContext)
+      const isOrganizationReport = processedPlanScope === 'organization'
+
+      // Consume URL params for org reports only, since the seat-count
+      // confirmation screen is the only place these params apply. We always
+      // clear recognized params after considering them so a stale URL can't
+      // silently misapply on a subsequent upload (one-shot per upload).
+      let shouldShowSeatConfirmation = isOrganizationReport
+      let seatConfirmationPrefill: { business?: number; enterprise?: number } = {}
+      let autoApplyCounts: { business: number; enterprise: number } | null = null
+
+      if (isOrganizationReport) {
+        const urlParams = readSeatCountUrlParams(window.location.search)
+        const defaults = computeDefaultSeatCountsFromUsers(processedUsers)
+        const bothProvided = urlParams.business !== undefined && urlParams.enterprise !== undefined
+        const bothAtLeastDefault =
+          bothProvided && urlParams.business! >= defaults.business && urlParams.enterprise! >= defaults.enterprise
+
+        if (bothAtLeastDefault) {
+          // Both counts present and valid: auto-apply and bypass the screen.
+          shouldShowSeatConfirmation = false
+          // Only re-run the pipeline if the URL counts actually differ from
+          // historical defaults; otherwise the apply is a no-op.
+          if (urlParams.business! > defaults.business || urlParams.enterprise! > defaults.enterprise) {
+            autoApplyCounts = { business: urlParams.business!, enterprise: urlParams.enterprise! }
+          }
+        } else if (urlParams.business !== undefined || urlParams.enterprise !== undefined) {
+          // One side missing, or a value below the historical minimum.
+          // Prefill what we got so the existing inputs (and any below-default
+          // error message) surface rather than silently misapplying.
+          seatConfirmationPrefill = {
+            business: urlParams.business,
+            enterprise: urlParams.enterprise,
+          }
+        }
+
+        clearSeatCountUrlParams()
+      }
+
+      setSeatConfirmationInitial(seatConfirmationPrefill)
+      setSeatConfirmationPending(shouldShowSeatConfirmation)
+      setStatus('done')
+
+      if (autoApplyCounts) {
+        setIsApplyingSeatConfirmation(true)
+        try {
+          // On failure, handleSeatOverridesChange routes the message through
+          // setSeatConfirmationError and the screen will appear with the URL
+          // counts prefilled so the user can correct and retry.
+          const success = await handleSeatOverridesChange(autoApplyCounts, (message) => {
+            setSeatConfirmationError(message)
+            setSeatConfirmationInitial(autoApplyCounts!)
+            setSeatConfirmationPending(true)
+          })
+          if (!success) return
+        } finally {
+          setIsApplyingSeatConfirmation(false)
+        }
+      }
+    } catch (err) {
+      if (runId !== latestRunIdRef.current) return
+      setError(err instanceof Error ? err.message : 'Failed to process the report.')
+      setStatus('idle')
+      setProgress(0)
+      setRowsProcessed(0)
+    }
+  }, [applyProcessedData, buildReportData, computeDefaultSeatCountsFromUsers, handleSeatOverridesChange, resetReportState])
 
   const handleSeatConfirmationApply = useCallback(async (counts: { business: number; enterprise: number }) => {
     setIsApplyingSeatConfirmation(true)
@@ -472,6 +535,8 @@ function App() {
             fileName={fileName}
             defaultBusinessSeats={defaultBusinessSeats}
             defaultEnterpriseSeats={defaultEnterpriseSeats}
+            initialBusinessSeats={seatConfirmationInitial.business}
+            initialEnterpriseSeats={seatConfirmationInitial.enterprise}
             error={seatConfirmationError}
             isApplying={isApplyingSeatConfirmation}
             onConfirm={(counts) => { void handleSeatConfirmationApply(counts) }}

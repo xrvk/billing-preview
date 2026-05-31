@@ -77,6 +77,21 @@ You can deploy a private instance of this app to GitHub Pages:
 
 3. **Deploy** - the [`.github/workflows/pages.yml`](.github/workflows/pages.yml) workflow runs automatically on every push to `main`. It lints, tests, builds the app, and deploys it to your Pages URL (`https://<your-username>.github.io/<repo-name>/`). You can also trigger it manually from the **Actions** tab using the **Run workflow** button.
 
+### URL parameters for seat counts (advanced)
+
+For organization-scope reports the app shows a "Review licensed seat counts" screen after upload so you can add seats that aren't represented in the CSV. Technical users can prefill or bypass this screen with query parameters on the page URL:
+
+| Param | Value | Effect |
+| --- | --- | --- |
+| `cb` | non-negative integer | Copilot Business seat count |
+| `ce` | non-negative integer | Copilot Enterprise seat count |
+
+Example: `https://<your-app-url>/?cb=120&ce=40`
+
+The confirmation screen is **only** bypassed when both `cb` and `ce` are present, both parse as non-negative integers, and both are at least the historical counts derived from the CSV. Otherwise the screen still appears (with any provided value prefilled) so partial input or below-default values surface as a normal validation error.
+
+To prevent stale URLs from silently misapplying to a different upload, the values are blanked (`?cb=&ce=`) after each upload while the keys themselves remain visible. Each upload must supply fresh values, so refreshing the page or re-uploading without editing the URL won't reapply the previous run's counts.
+
 ## License
 
 This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](./LICENSE) file for the full terms.

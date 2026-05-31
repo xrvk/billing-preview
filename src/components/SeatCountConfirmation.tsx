@@ -8,6 +8,11 @@ export type SeatCountConfirmationProps = {
   fileName: string | null
   defaultBusinessSeats: number
   defaultEnterpriseSeats: number
+  // Optional prefill values (e.g. supplied via URL query params). When provided
+  // and >= the historical default, the input starts pre-populated with this
+  // value instead of the default. Invalid prefills fall through to defaults.
+  initialBusinessSeats?: number
+  initialEnterpriseSeats?: number
   error: string | null
   isApplying: boolean
   onConfirm: (counts: { business: number; enterprise: number }) => void
@@ -17,12 +22,18 @@ export function SeatCountConfirmation({
   fileName,
   defaultBusinessSeats,
   defaultEnterpriseSeats,
+  initialBusinessSeats,
+  initialEnterpriseSeats,
   error,
   isApplying,
   onConfirm,
 }: SeatCountConfirmationProps) {
-  const [businessDraft, setBusinessDraft] = useState<string>(String(defaultBusinessSeats))
-  const [enterpriseDraft, setEnterpriseDraft] = useState<string>(String(defaultEnterpriseSeats))
+  const [businessDraft, setBusinessDraft] = useState<string>(
+    String(initialBusinessSeats ?? defaultBusinessSeats),
+  )
+  const [enterpriseDraft, setEnterpriseDraft] = useState<string>(
+    String(initialEnterpriseSeats ?? defaultEnterpriseSeats),
+  )
 
   const businessError = useMemo(() => getSeatReductionError(businessDraft, defaultBusinessSeats), [businessDraft, defaultBusinessSeats])
   const enterpriseError = useMemo(() => getSeatReductionError(enterpriseDraft, defaultEnterpriseSeats), [enterpriseDraft, defaultEnterpriseSeats])
