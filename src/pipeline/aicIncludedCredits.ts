@@ -244,6 +244,10 @@ export class PooledAicIncludedCreditsAllocator {
   }
 
   apply(record: TokenUsageRecord): TokenUsageRecord {
+    if (isPreAllocatedAicRecord(record)) {
+      return record
+    }
+
     const { aicQuantity, aicGrossAmount } = getAicUsageMetrics(record)
 
     if (aicQuantity <= 0) {
@@ -278,6 +282,10 @@ export class IndividualAicIncludedCreditsAllocator {
   }
 
   apply(record: TokenUsageRecord): TokenUsageRecord {
+    if (isPreAllocatedAicRecord(record)) {
+      return record
+    }
+
     const { aicQuantity, aicGrossAmount } = getAicUsageMetrics(record)
 
     if (aicQuantity <= 0) {
@@ -312,6 +320,11 @@ export class IndividualAicIncludedCreditsAllocator {
     if (!monthKey) return 0
     return this.remainingIncludedCreditsByMonth.get(`${username.trim()}\u0000${monthKey}`) ?? this.monthlyIncludedCredits
   }
+}
+
+function isPreAllocatedAicRecord(record: TokenUsageRecord): boolean {
+  // June+ schema rows omit aic_* columns and ship gross/discount/net pre-applied by GitHub.
+  return !record.has_aic_gross_amount && record.unit_type === 'ai-credits'
 }
 
 export async function createAicIncludedCreditsAllocator(

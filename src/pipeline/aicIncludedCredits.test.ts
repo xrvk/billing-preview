@@ -498,6 +498,26 @@ describe('pooled AIC allocation and derived AIC discounts', () => {
     expect(allocated.aic_net_amount).toBeCloseTo(0.02)
   })
 
+  it('skips pool allocation for June-schema ai-credits rows whose discount is pre-applied', () => {
+    const allocator = new PooledAicIncludedCreditsAllocator(10_000)
+    const record = createRecord({
+      aic_quantity: 0,
+      aic_gross_amount: 0,
+      aic_net_amount: 0,
+      quantity: 4796.58,
+      gross_amount: 47.97,
+      discount_amount: 47.97,
+      net_amount: 0,
+      has_aic_quantity: false,
+      has_aic_gross_amount: false,
+    })
+
+    const allocated = allocator.apply(record)
+
+    expect(allocated.aic_net_amount).toBe(0)
+    expect(allocator.remaining()).toBe(10_000)
+  })
+
   it('applies pooled allocation before records reach aggregators in runPipeline', async () => {
     const file = createCsv([
       ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '300', 'octo', 'Cats', '10', '0.10'],

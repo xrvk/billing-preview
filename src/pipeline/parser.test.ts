@@ -50,6 +50,23 @@ const HEADER_WITHOUT_EXCEEDS_QUOTA = [
   'aic_gross_amount',
 ].join(',')
 
+const JUNE_SCHEMA_HEADER = [
+  'date',
+  'product',
+  'sku',
+  'quantity',
+  'unit_type',
+  'applied_cost_per_quantity',
+  'gross_amount',
+  'discount_amount',
+  'net_amount',
+  'username',
+  'organization',
+  'repository',
+  'workflow_path',
+  'cost_center_name',
+].join(',')
+
 function buildRow(values: string[]): string {
   return values.join(',')
 }
@@ -757,5 +774,158 @@ describe('validateHeader', () => {
     ].join(',')
     const header = parseTokenUsageHeader(incompleteBillingHeader)
     expect(() => validateHeader(header)).toThrow(InvalidReportError)
+  })
+
+  it('accepts the June schema (no model/quota/aic columns, with repository and workflow_path)', () => {
+    const header = parseTokenUsageHeader(JUNE_SCHEMA_HEADER)
+    expect(() => validateHeader(header)).not.toThrow()
+  })
+
+  it('throws InvalidReportError for a header missing both legacy quota and June marker columns', () => {
+    const ambiguousHeader = [
+      'date',
+      'username',
+      'product',
+      'sku',
+      'quantity',
+      'unit_type',
+      'applied_cost_per_quantity',
+      'gross_amount',
+      'discount_amount',
+      'net_amount',
+      'organization',
+      'cost_center_name',
+    ].join(',')
+    const header = parseTokenUsageHeader(ambiguousHeader)
+    expect(() => validateHeader(header)).toThrow(InvalidReportError)
+  })
+})
+
+describe('June schema parsing', () => {
+  function buildJuneRow(values: string[]): string {
+    return values.join(',')
+  }
+
+  it('parses an ai-credits row and uses CSV net_amount as the AIC net (pre-applied discount)', () => {
+    const header = parseTokenUsageHeader(JUNE_SCHEMA_HEADER)
+    const record = parseTokenUsageRecord(
+      buildJuneRow([
+        '2026-06-01',
+        'copilot',
+        'copilot_ai_credit',
+        '4796.583995',
+        'ai-credits',
+        '0.01',
+        '47.96583995',
+        '47.96583995',
+        '0',
+        'mona',
+        'example-org',
+        '',
+        '',
+        'Cost Center A',
+      ]),
+      header,
+    )
+
+    expect(record.model).toBe('')
+    expect(record.total_monthly_quota).toBe(0)
+    expect(record.has_aic_quantity).toBe(false)
+    expect(record.has_aic_gross_amount).toBe(false)
+    expect(record.aic_net_amount).toBe(0)
+    expect(getUsageMetrics(record)).toMatchObject({
+      aicQuantity: 4796.583995,
+      aicGrossAmount: 47.96583995,
+      aicNetAmount: 0,
+    })
+  })
+
+  it('filters out non-Copilot AI rows whose unit_type is not requests or ai-credits', () => {
+    const header = parseTokenUsageHeader(JUNE_SCHEMA_HEADER)
+
+    const seatRow = parseNormalizedTokenUsageRecord(
+      buildJuneRow([
+        '2026-06-01',
+        'copilot',
+        'copilot_for_business',
+        '0.033333333',
+        'user-months',
+        '19',
+        '0.633333327',
+        '0',
+        '0.633333327',
+        'mona',
+        'example-org',
+        '',
+        '',
+        'Cost Center A',
+      ]),
+      header,
+    )
+
+    const actionsRow = parseNormalizedTokenUsageRecord(
+      buildJuneRow([
+        '2026-06-01',
+        'actions',
+        'actions_linux',
+        '4',
+        'minutes',
+        '0.006',
+        '0.024',
+        '0.024',
+        '0',
+        'octocat[bot]',
+        'example-org',
+        'octodemo',
+        'dynamic/agents/copilot-pull-request-reviewer',
+        'Cost Center A',
+      ]),
+      header,
+    )
+
+    const lfsRow = parseNormalizedTokenUsageRecord(
+      buildJuneRow([
+        '2026-06-01',
+        'git_lfs',
+        'git_lfs_storage',
+        '3.6',
+        'gigabyte-hours',
+        '9.4086E-05',
+        '0.00033',
+        '0.00033',
+        '0',
+        '',
+        'example-org',
+        'octodemo',
+        '',
+        'Cost Center A',
+      ]),
+      header,
+    )
+
+    const creditRow = parseNormalizedTokenUsageRecord(
+      buildJuneRow([
+        '2026-06-01',
+        'copilot',
+        'copilot_ai_credit',
+        '50',
+        'ai-credits',
+        '0.01',
+        '0.50',
+        '0.50',
+        '0',
+        'mona',
+        'example-org',
+        '',
+        '',
+        'Cost Center A',
+      ]),
+      header,
+    )
+
+    expect(seatRow).toBeNull()
+    expect(actionsRow).toBeNull()
+    expect(lfsRow).toBeNull()
+    expect(creditRow).not.toBeNull()
   })
 })

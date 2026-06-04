@@ -104,19 +104,20 @@ const BASE_BILLING_COLUMNS = [
   'username',
   'product',
   'sku',
-  'model',
   'quantity',
   'unit_type',
   'applied_cost_per_quantity',
   'gross_amount',
   'discount_amount',
   'net_amount',
-  'total_monthly_quota',
   'organization',
 ] as const
 const REQUIRED_AIC_COLUMNS = ['aic_quantity', 'aic_gross_amount'] as const
+const LEGACY_SCHEMA_MARKER_COLUMN = 'total_monthly_quota'
+const JUNE_SCHEMA_MARKER_COLUMNS = ['repository', 'workflow_path'] as const
 const APRIL_BACKFILL_START_DATE = '2026-04-24'
 const APRIL_BACKFILL_END_DATE = '2026-04-30'
+const ACCEPTED_UNIT_TYPES = new Set<string>(['requests', 'ai-credits'])
 
 export class InvalidReportError extends Error {
   constructor() {
@@ -144,9 +145,18 @@ export function validateHeader(header: TokenUsageHeader): void {
     throw new InvalidReportError()
   }
 
-  const missingAic = REQUIRED_AIC_COLUMNS.filter((col) => !(col in header.index))
-  if (missingAic.length > 0) {
+  const hasLegacyQuotaColumn = LEGACY_SCHEMA_MARKER_COLUMN in header.index
+  const hasAicColumns = REQUIRED_AIC_COLUMNS.every((col) => col in header.index)
+
+  if (hasLegacyQuotaColumn && !hasAicColumns) {
     throw new UnsupportedReportVersionError()
+  }
+
+  if (!hasLegacyQuotaColumn && !hasAicColumns) {
+    const hasJuneMarkers = JUNE_SCHEMA_MARKER_COLUMNS.every((col) => col in header.index)
+    if (!hasJuneMarkers) {
+      throw new InvalidReportError()
+    }
   }
 }
 
@@ -255,8 +265,14 @@ export function parseTokenUsageRecord(line: string, header: TokenUsageHeader): T
     has_aic_gross_amount: aicGrossAmountRaw !== '',
   }
 
-  record.aic_net_amount = getAicUsageMetrics(record).aicGrossAmount
+  record.aic_net_amount = isAiCreditUsageRecord(record.unit_type) && !record.has_aic_gross_amount
+    ? record.net_amount
+    : getAicUsageMetrics(record).aicGrossAmount
   return record
+}
+
+function isAcceptedUnitType(unitType: string): boolean {
+  return ACCEPTED_UNIT_TYPES.has(unitType)
 }
 
 function isAprilBackfillDate(date: string): boolean {
@@ -265,6 +281,10 @@ function isAprilBackfillDate(date: string): boolean {
 
 // normalize known export window
 export function normalizeTokenUsageRecord(record: TokenUsageRecord): TokenUsageRecord | null {
+  if (!isAcceptedUnitType(record.unit_type)) {
+    return null
+  }
+
   if (!isAprilBackfillDate(record.date)) {
     return record
   }
