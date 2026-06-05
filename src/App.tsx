@@ -34,7 +34,11 @@ import { runPipeline } from './pipeline/runPipeline'
 import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
-import { detectReportFormatFromFileName } from './utils/reportFormat'
+import {
+  GENERIC_USAGE_REPORT_ERROR_MESSAGE,
+  detectReportFormatFromFileName,
+  isGenericUsageReportFileName,
+} from './utils/reportFormat'
 import { clearSeatCountUrlParams, readSeatCountUrlParams } from './utils/seatCountUrlParams'
 import { useAppVersionCheck } from './hooks/useAppVersionCheck'
 
@@ -276,6 +280,15 @@ function App() {
   }, [applyProcessedData, buildReportData, compactSeatOverrides, resolveIncludedCreditOverrides])
 
   const handleProcess = useCallback(async (file: File) => {
+    if (isGenericUsageReportFileName(file.name)) {
+      currentFileRef.current = null
+      latestRunIdRef.current += 1
+      latestSimulationIdRef.current += 1
+      resetReportState({ status: 'idle', fileName: null })
+      setError(GENERIC_USAGE_REPORT_ERROR_MESSAGE)
+      return
+    }
+
     currentFileRef.current = file
     const runId = ++latestRunIdRef.current
     latestSimulationIdRef.current += 1
