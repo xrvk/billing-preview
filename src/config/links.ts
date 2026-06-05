@@ -10,5 +10,5 @@ export const appLinks = {
   usageBasedBillingForOrganizationsDocs: 'https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises',
   aiCreditsForOrganizationsDocs: 'https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises#how-do-ai-credits-work',
   copilotMaxPlanBlog: 'https://github.blog/news-insights/company-news/github-copilot-individual-plans-introducing-flex-allotments-in-pro-and-pro-and-a-new-max-plan/',
-  issues: 'https://github.com/github/copilot-billing-preview/issues',
+  issues: 'https://github.com/xrvk/billing-preview/issues',
 } as const

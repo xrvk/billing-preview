@@ -1,18 +1,12 @@
-Thanks for helping make GitHub safe for everyone.
-
 # Security
 
-GitHub takes the security of our software products and services seriously, including all of the open source code repositories managed through our GitHub organizations, such as [GitHub](https://github.com/GitHub).
+This project is an independent, unofficial fork of GitHub Copilot Billing Preview. It is not affiliated with or supported by GitHub, Inc.
 
-Even though [open source repositories are outside of the scope of our bug bounty program](https://bounty.github.com/index.html#scope) and therefore not eligible for bounty rewards, we will ensure that your finding gets passed along to the appropriate maintainers for remediation.
+## Reporting security issues
 
-## Reporting Security Issues
+If you believe you have found a security vulnerability in this fork, please report it through coordinated disclosure. Do not report security vulnerabilities through public GitHub issues, discussions, or pull requests on this repository.
 
-If you believe you have found a security vulnerability in any GitHub-owned repository, please report it to us through coordinated disclosure.
-
-**Please do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.**
-
-Instead, please send an email to opensource-security[@]github.com.
+To report a vulnerability privately, please open a [private security advisory](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) on this repository.
 
 Please include as much of the information listed below as you can to help us better understand and resolve the issue:
 
@@ -24,8 +18,8 @@ Please include as much of the information listed below as you can to help us bet
 - Proof-of-concept or exploit code, if possible
 - Impact of the issue, including how an attacker might exploit it
 
-This information will help us triage your report more quickly.
+This information will help triage your report more quickly.
 
-## Policy
+## Upstream
 
-See [GitHub's Safe Harbor Policy](https://docs.github.com/en/site-policy/security-policies/github-bug-bounty-program-legal-safe-harbor#1-safe-harbor-terms).
+For vulnerabilities that originate in the upstream project, please also consider reporting them to the upstream maintainers per the upstream [SECURITY.md](https://github.com/github/copilot-billing-preview/blob/main/SECURITY.md).

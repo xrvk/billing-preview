@@ -1,5 +1,5 @@
 import type { DragEvent, KeyboardEvent, MouseEvent } from 'react'
-import { MarkGithubIcon, UploadIcon, LockIcon } from '@primer/octicons-react'
+import { GraphIcon, UploadIcon, LockIcon } from '@primer/octicons-react'
 import { appLinks } from '../config/links'
 
 export interface UploadPageProps {
@@ -45,8 +45,11 @@ export function UploadPage({
   return (
     <main className="flex-1 flex flex-col items-center justify-center gap-6 py-6 px-4 sm:pt-12 sm:px-6 sm:pb-8 bg-bg-muted">
       <div className="max-w-[760px] w-full text-center bg-bg-default border border-border-default rounded-[16px] shadow-[0_8px_24px_rgba(31,35,40,0.08)] py-8 px-5 sm:py-12 sm:px-10">
-        <MarkGithubIcon size={48} className="block mx-auto mb-4 text-fg-default" aria-hidden />
-        <h1 className="m-0 mb-3 text-[26px] sm:text-[32px] leading-[1.2] text-fg-default font-bold">Copilot Billing Preview</h1>
+        <GraphIcon size={48} className="block mx-auto mb-4 text-fg-default" aria-hidden />
+        <h1 className="m-0 mb-3 text-[26px] sm:text-[32px] leading-[1.2] text-fg-default font-bold">xrvk's Billing Preview</h1>
+        <p className="mx-auto mb-4 max-w-[640px] text-fg-muted text-[13px] leading-[1.6] italic">
+          An unofficial, independent tool. Not affiliated with or endorsed by GitHub, Inc.
+        </p>
         <p className="mx-auto mb-8 max-w-[640px] text-fg-muted text-[15px] leading-[1.7]">
           GitHub is moving to <strong>usage-based billing</strong> for Copilot. Starting June 1, 2026, your usage
           will be measured and billed in AI Credits instead of Premium Requests. This tool helps you

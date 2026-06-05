@@ -1,10 +1,14 @@
-# GitHub Copilot Billing Preview
+# xrvk's Billing Preview
 
-A web application for previewing and comparing your future GitHub Copilot bills as you transition to the new usage-based billing model. Upload your CSV billing reports to explore requests, costs, AI Credits, and trends across users, organizations, models, and cost centers.
+> **Unofficial fork.** This project is an independent, community-maintained derivative of the open source [GitHub Copilot Billing Preview](https://github.com/github/copilot-billing-preview) project (MIT-licensed, Copyright GitHub, Inc.). It is not affiliated with, endorsed by, or sponsored by GitHub, Inc. "GitHub" and "GitHub Copilot" are trademarks of GitHub, Inc., used here only descriptively to identify the billing CSV format this tool inspects. See [NOTICE](./NOTICE) for the full attribution.
 
-Production instance: <https://copilot-billing-preview.github.com/>
+A browser app for previewing and comparing GitHub Copilot usage-based billing reports. Upload your CSV billing reports to explore requests, costs, AI Credits, and trends across users, organizations, models, and cost centers.
 
-This project is in active development. It is intended to help GitHub Copilot customers understand usage-based billing preview data during the transition period.
+This fork tracks the upstream project and adds:
+
+- Support for the June 2026+ usage report schema (no `model`, `total_monthly_quota`, or `aic_*` columns; new `repository` and `workflow_path` columns).
+- Cost Management UI rebuilt around the documented universal budget lever.
+- `cb` / `ce` URL parameters to prefill or skip the seat-count confirmation screen.
 
 ## Features
 
@@ -16,15 +20,9 @@ This project is in active development. It is intended to help GitHub Copilot cus
 ## Scope and limitations
 
 - This app is a preview and planning tool, not a source of record for billing.
-- CSV files are processed locally in your browser; do not upload real billing reports to public issues, pull requests, or discussions.
-- The app expects GitHub Copilot billing report CSVs that match the current format documented in [docs/report-format.md](docs/report-format.md).
+- CSV files are processed locally in your browser. Do not upload real billing reports to public issues, pull requests, or discussions.
+- The app expects GitHub Copilot billing report CSVs in either the current preview format or the June 2026+ format, both documented in [docs/report-format.md](docs/report-format.md).
 - Billing calculations may change as GitHub Copilot usage-based billing evolves.
-
-## Background
-
-GitHub Copilot Billing Preview helps customers inspect usage-based billing CSV exports before relying on them for planning or budget conversations. For detailed CSV format expectations, see [docs/report-format.md](docs/report-format.md).
-
-Contributions are welcome. Before opening an issue or pull request, avoid sharing real customer data, billing reports, screenshots with sensitive information, or any other private information. For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Requirements
 
@@ -45,7 +43,7 @@ npm install
 npm run dev
 ```
 
-Open your browser to the URL shown (typically `http://localhost:5173`)
+Open your browser to the URL shown (typically `http://localhost:5173`).
 
 ### Build
 
@@ -69,13 +67,7 @@ npm run lint
 
 ### Hosting your own copy
 
-You can deploy a private instance of this app to GitHub Pages:
-
-1. **Fork the repository** - click **Fork** on the GitHub repository page to create a copy under your account or organization.
-
-2. **Enable GitHub Pages** - in your fork, go to **Settings > Pages**, set the source to **GitHub Actions**, and save.
-
-3. **Deploy** - the [`.github/workflows/pages.yml`](.github/workflows/pages.yml) workflow runs automatically on every push to `main`. It lints, tests, builds the app, and deploys it to your Pages URL (`https://<your-username>.github.io/<repo-name>/`). You can also trigger it manually from the **Actions** tab using the **Run workflow** button.
+You can deploy a private instance of this app to any static host (GitHub Pages, Netlify, Vercel, an S3 bucket, etc.). The build output in `dist/` is a fully static SPA.
 
 ### URL parameters for seat counts (advanced)
 
@@ -94,14 +86,12 @@ To prevent stale URLs from silently misapplying to a different upload, the value
 
 ## License
 
-This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](./LICENSE) file for the full terms.
+This project is licensed under the terms of the MIT open source license. The upstream copyright notice is preserved in the [LICENSE](./LICENSE) file, along with the attribution for this fork.
 
-## Maintainers
+## Trademark and attribution
 
-Maintainers are listed in [`.github/CODEOWNERS`](.github/CODEOWNERS).
+See [NOTICE](./NOTICE) for the full trademark and attribution statement. In short: "GitHub" and "GitHub Copilot" are trademarks of GitHub, Inc. This project is independent and unofficial.
 
 ## Support
 
-Use GitHub issues to report bugs and request improvements once this repository is public. Do not attach billing CSV files or screenshots that contain sensitive billing information.
-
-Support expectations are documented in [SUPPORT.md](SUPPORT.md).
+This is a personal open source fork. Use GitHub issues on this repository to report bugs and request improvements. Do not attach billing CSV files or screenshots that contain sensitive billing information.

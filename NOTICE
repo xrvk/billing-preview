@@ -1,0 +1,18 @@
+xrvk's Billing Preview
+======================
+
+This project is an independent, unofficial derivative work, maintained by
+xrvk. It is forked from and remains derived from the open source project
+"GitHub Copilot Billing Preview" (originally published under the MIT License
+with Copyright GitHub, Inc.).
+
+This project is not affiliated with, endorsed by, sponsored by, or otherwise
+officially connected to GitHub, Inc. "GitHub" and "GitHub Copilot" are
+trademarks of GitHub, Inc., and are used here only descriptively to identify
+the GitHub Copilot usage-based billing data that this tool helps inspect.
+
+For the upstream project, see:
+  https://github.com/github/copilot-billing-preview
+
+For the MIT License and the full upstream copyright notice, see the LICENSE
+file in this repository.

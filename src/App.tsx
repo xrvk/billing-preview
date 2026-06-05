@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import type { ChangeEvent, DragEvent, KeyboardEvent, MouseEvent } from 'react'
-import { MarkGithubIcon, GraphIcon, PeopleIcon, CopilotIcon, TableIcon, OrganizationIcon, DatabaseIcon, InfoIcon, QuestionIcon, CreditCardIcon } from '@primer/octicons-react'
+import { GraphIcon, PeopleIcon, CopilotIcon, TableIcon, OrganizationIcon, DatabaseIcon, InfoIcon, QuestionIcon, CreditCardIcon } from '@primer/octicons-react'
 
 import { NewVersionBanner, UploadPage } from './components'
 import { SeatCountConfirmation } from './components/SeatCountConfirmation'
@@ -517,8 +517,8 @@ function App() {
 
       <header className="bg-header-bg py-[14px] px-6 flex justify-between items-center gap-3 flex-wrap max-sm:px-4 max-sm:py-3">
         <div className="flex items-center gap-3">
-          <MarkGithubIcon size={32} className="block text-white" aria-hidden />
-          <span className="text-lg font-semibold text-white tracking-tight max-sm:text-xs">Billing Preview</span>
+          <GraphIcon size={32} className="block text-white" aria-hidden />
+          <span className="text-lg font-semibold text-white tracking-tight max-sm:text-xs">xrvk's Billing Preview</span>
         </div>
         {hasReport && (
           <div className="flex items-center max-sm:w-full">
