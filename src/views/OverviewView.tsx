@@ -228,24 +228,6 @@ export function OverviewView({
             />
           </section>
 
-          {reportPlanScope === 'organization' && (
-            <div className="bg-bg-default border border-border-default rounded-md py-5 px-6 mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-              <div className="flex-1 flex flex-col gap-1">
-                <strong className="text-sm font-semibold text-fg-default">Pooled included credits are coming</strong>
-                <p className="m-0 text-[13px] text-fg-muted leading-normal">
-                  Under usage-based billing, included credits will be pooled across all licensed users in your account. No more unused capacity going to waste from idle users.
-                </p>
-              </div>
-              <a
-                href={appLinks.aiCreditsForOrganizationsDocs}
-                className="text-sm font-medium text-fg-accent no-underline whitespace-nowrap hover:underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Learn more &rarr;
-              </a>
-            </div>
-          )}
 
           <section className="mt-8">
             <h2 className="text-base font-semibold text-fg-default pb-[10px] border-b border-border-default mb-4">Recommended next steps</h2>

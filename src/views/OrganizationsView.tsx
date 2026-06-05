@@ -2,7 +2,6 @@ import { useCallback, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { BillingProjectionDisclaimer, ExistingDiscountDisclaimer } from '../components/ui'
 import { th, thNum, td, tdNum } from '../components/ui/tableStyles'
-import { appLinks } from '../config/links'
 import type { OrganizationResult, OrgTotals, OrgUserTotals } from '../pipeline/aggregators/organizationAggregator'
 import { calculateAicDiscountAmount, calculateSavingsDifference } from '../utils/billingComparison'
 import { formatAic, formatDifference, formatUsd } from '../utils/format'
@@ -174,23 +173,6 @@ export function OrganizationsView({ data, rangeStart, hasPruUsage = true }: { da
           <BillingProjectionDisclaimer className="mb-6" />
         </>
       )}
-
-      <div className="bg-bg-default border border-border-default rounded-md py-5 px-6 mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-        <div className="flex-1 flex flex-col gap-1">
-          <strong className="text-sm font-semibold text-fg-default">Pooled included credits are coming</strong>
-          <p className="m-0 text-[13px] text-fg-muted leading-normal">
-            Under usage-based billing, included credits will be pooled across all licensed users in your account (not per organization). Included credits are shared across your account-wide pool, not allocated separately to each organization. No more unused capacity going to waste from idle users.
-          </p>
-        </div>
-        <a
-          href={appLinks.aiCreditsForOrganizationsDocs}
-          className="text-sm font-medium text-fg-accent no-underline whitespace-nowrap hover:underline"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn more &rarr;
-        </a>
-      </div>
 
       <div className="grid grid-cols-1 gap-5">
         <div className="flex flex-wrap border-b border-border-default" aria-label="Organization detail tables">
