@@ -11,7 +11,6 @@ A browser app for previewing and comparing GitHub Copilot usage-based billing re
 A hosted, lightly-extended build of the upstream tool, focused on schema coverage and a leaner UX. See the full diff against upstream here: [`github/copilot-billing-preview...xrvk/billing-preview`](https://github.com/github/copilot-billing-preview/compare/main...xrvk:billing-preview:main).
 
 - **June 2026+ AIC schema support.** Parses the new usage report layout (no `model`, no `aic_*` columns, new `repository` and `workflow_path` columns) alongside the current preview schema. No code changes upstream yet.
-- **Hosted at <https://xrvk.github.io/billing-preview/>.** No clone, no `npm install`, no local server. Upload a CSV and go. (CSVs are processed entirely in your browser; nothing is uploaded anywhere.)
 - **Cost Management rebuilt around the documented universal budget lever.** Drops the speculative carveouts and simulation; adds a single ULB control that matches what GitHub actually exposes today.
 - **`?cb=` / `?ce=` URL params.** Prefill or skip the seat-count confirmation screen for shareable, deep-linkable views.
 - **PRU UI auto-hides when reports have no PRU data.** June reports drop request-based metering, so request columns, cards, and charts disappear instead of showing zeros.
