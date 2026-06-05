@@ -21,6 +21,7 @@ type OverviewViewProps = {
   reportPlanScope?: ReportPlanScope
   upgradeRecommendation?: IndividualPlanUpgradeRecommendation | null
   onAdjustSeatCounts?: () => void
+  hasPruUsage?: boolean
 }
 
 function createEmptyDailyUsage(date: string): DailyUsageData {
@@ -47,6 +48,7 @@ export function OverviewView({
   reportPlanScope = 'organization',
   upgradeRecommendation = null,
   onAdjustSeatCounts,
+  hasPruUsage = true,
 }: OverviewViewProps) {
   const filledDailyUsageData = fillDataForRange(dailyUsageData, rangeStart, rangeEnd, createEmptyDailyUsage)
 
@@ -87,9 +89,15 @@ export function OverviewView({
       {dailyUsageData.length > 0 && (
         <section>
           <div className="bg-bg-accent-muted border border-border-accent/25 rounded-md py-5 px-6 mb-5 flex flex-col gap-2">
-            <h2 className="m-0 text-base font-semibold text-fg-default">GitHub Copilot is moving to usage-based billing</h2>
+            <h2 className="m-0 text-base font-semibold text-fg-default">
+              {hasPruUsage ? 'GitHub Copilot is moving to usage-based billing' : 'GitHub Copilot usage-based billing'}
+            </h2>
             <p className="m-0 text-sm text-fg-default leading-normal">
-              Starting June 1, 2026, Copilot usage will be measured in AI Credits (AICs) instead of Premium Requests (PRUs). <strong className="text-[15px] font-bold bg-bg-default py-[2px] px-2 rounded-[4px] whitespace-nowrap">1 AIC = $0.01.</strong> This is a preview estimate based on your uploaded report. Actual bills under usage-based billing may differ based on model mix and final pricing.
+              {hasPruUsage ? (
+                <>Starting June 1, 2026, Copilot usage will be measured in AI Credits (AICs) instead of Premium Requests (PRUs). <strong className="text-[15px] font-bold bg-bg-default py-[2px] px-2 rounded-[4px] whitespace-nowrap">1 AIC = $0.01.</strong> This is a preview estimate based on your uploaded report. Actual bills under usage-based billing may differ based on model mix and final pricing.</>
+              ) : (
+                <>Copilot usage is measured in AI Credits (AICs). <strong className="text-[15px] font-bold bg-bg-default py-[2px] px-2 rounded-[4px] whitespace-nowrap">1 AIC = $0.01.</strong> This is a preview estimate based on your uploaded report. Actual bills under usage-based billing may differ based on model mix and final pricing.</>
+              )}
             </p>
             {fileName && (
               <p className="m-0 text-[13px] text-fg-muted leading-normal">
@@ -106,7 +114,7 @@ export function OverviewView({
             </a>
           </div>
 
-          {periodLabel && (
+          {hasPruUsage && periodLabel && (
             <p className="text-base font-normal text-center mb-1 text-fg-default">
               {savings > 0 ? (
                 <>
@@ -135,6 +143,7 @@ export function OverviewView({
             aicGrossAmount={overviewTotals.aicGrossAmount}
             aicDiscountAmount={aicDiscount}
             aicQuantity={overviewTotals.aicQuantity}
+            hasPruUsage={hasPruUsage}
             licenseAmount={licenseAmount}
             licenseSeatCounts={licenseSeatCounts}
             showExistingDiscountDisclaimer={reportPlanScope !== 'individual'}
@@ -147,34 +156,38 @@ export function OverviewView({
 
           <section className="grid grid-cols-1 gap-6 w-full">
             <DualAxisLineChart
-              title="Daily Requests & AI Credits"
+              title={hasPruUsage ? 'Daily Requests & AI Credits' : 'Daily AI Credits'}
               labels={filledDailyUsageData.map((day) => day.date)}
               series={[
-                {
-                  label: 'Premium Requests',
-                  color: '#6366f1',
-                  data: filledDailyUsageData.map((day) => day.requests),
-                  yAxisID: 'y',
-                },
+                ...(hasPruUsage
+                  ? [{
+                      label: 'Premium Requests',
+                      color: '#6366f1',
+                      data: filledDailyUsageData.map((day) => day.requests),
+                      yAxisID: 'y' as const,
+                    }]
+                  : []),
                 {
                   label: 'AI Credits',
                   color: '#22c55e',
                   data: filledDailyUsageData.map((day) => day.aicQuantity),
-                  yAxisID: 'y1',
+                  yAxisID: hasPruUsage ? 'y1' : 'y',
                 },
               ]}
               height={320}
             />
             <DualAxisLineChart
-              title="Daily cost: PRU cost vs AIC cost"
+              title={hasPruUsage ? 'Daily cost: PRU cost vs AIC cost' : 'Daily AIC gross cost'}
               labels={filledDailyUsageData.map((day) => day.date)}
               series={[
-                {
-                  label: 'PRU Gross Cost',
-                  color: '#cf222e',
-                  data: filledDailyUsageData.map((day) => day.grossAmount),
-                  yAxisID: 'y',
-                },
+                ...(hasPruUsage
+                  ? [{
+                      label: 'PRU Gross Cost',
+                      color: '#cf222e',
+                      data: filledDailyUsageData.map((day) => day.grossAmount),
+                      yAxisID: 'y' as const,
+                    }]
+                  : []),
                 {
                   label: 'AIC Gross Cost',
                   color: '#54aeff',
@@ -186,18 +199,20 @@ export function OverviewView({
               height={320}
             />
             <DualAxisLineChart
-              title="Cumulative net cost: PRU vs AIC"
+              title={hasPruUsage ? 'Cumulative net cost: PRU vs AIC' : 'Cumulative AIC net cost'}
               labels={filledDailyUsageData.map((day) => day.date)}
               series={[
-                {
-                  label: 'PRU Net Cost',
-                  color: '#cf222e',
-                  data: filledDailyUsageData.reduce<number[]>((acc, day) => {
-                    acc.push((acc[acc.length - 1] ?? 0) + day.netAmount)
-                    return acc
-                  }, []),
-                  yAxisID: 'y',
-                },
+                ...(hasPruUsage
+                  ? [{
+                      label: 'PRU Net Cost',
+                      color: '#cf222e',
+                      data: filledDailyUsageData.reduce<number[]>((acc, day) => {
+                        acc.push((acc[acc.length - 1] ?? 0) + day.netAmount)
+                        return acc
+                      }, []),
+                      yAxisID: 'y' as const,
+                    }]
+                  : []),
                 {
                   label: 'AIC Net Cost',
                   color: '#54aeff',

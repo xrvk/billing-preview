@@ -30,7 +30,7 @@ export interface LineSeries {
 export interface DualAxisLineChartProps {
   title: string
   labels: string[]
-  series: [LineSeries, LineSeries, ...LineSeries[]]
+  series: LineSeries[]
   height?: number
   formatYAsCurrency?: boolean
 }
@@ -57,8 +57,14 @@ export function DualAxisLineChart({
   const usesSecondaryAxis = series.some((dataset) => dataset.yAxisID === 'y1')
   const [primarySeries, secondarySeries] = series
   const sharedAxisColor = '#475569'
-  const primaryAxisTitle = usesSecondaryAxis ? primarySeries.label : `${primarySeries.label} / ${secondarySeries.label}`
-  const primaryAxisColor = usesSecondaryAxis ? primarySeries.color : sharedAxisColor
+  const primaryAxisTitle = !primarySeries
+    ? ''
+    : usesSecondaryAxis
+      ? primarySeries.label
+      : secondarySeries
+        ? `${primarySeries.label} / ${secondarySeries.label}`
+        : primarySeries.label
+  const primaryAxisColor = usesSecondaryAxis && primarySeries ? primarySeries.color : sharedAxisColor
 
   const chartData = {
     labels,
@@ -175,14 +181,14 @@ export function DualAxisLineChart({
         beginAtZero: true,
         title: {
           display: true,
-          text: series[1].label,
+          text: series[1]?.label ?? '',
           font: { size: 11, weight: 500 },
-          color: series[1].color,
+          color: series[1]?.color ?? sharedAxisColor,
         },
         grid: { drawOnChartArea: false },
         ticks: {
           font: { size: 11 },
-          color: series[1].color,
+          color: series[1]?.color ?? sharedAxisColor,
           callback: (value) => (typeof value === 'number' ? tickFormatter(value) : value),
         },
       },

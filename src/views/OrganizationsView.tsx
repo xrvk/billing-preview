@@ -30,7 +30,7 @@ function getTopRows(entries: [string, OrgTotals | OrgUserTotals][]): OrgRow[] {
     })
 }
 
-export function OrganizationsView({ data, rangeStart }: { data: OrganizationResult; rangeStart?: string | null }) {
+export function OrganizationsView({ data, rangeStart, hasPruUsage = true }: { data: OrganizationResult; rangeStart?: string | null; hasPruUsage?: boolean }) {
   const [selected, setSelected] = useState<string>(data.organizations[0]?.organization ?? '')
   const [activeTable, setActiveTable] = useState<'users' | 'models'>('users')
 
@@ -105,7 +105,7 @@ export function OrganizationsView({ data, rangeStart }: { data: OrganizationResu
 
       {selectedOrg && totals && (
         <>
-          {hasCosts && periodLabel && (
+          {hasCosts && hasPruUsage && periodLabel && (
             <p className="text-base font-normal text-center mb-1 text-fg-default">
               {savings > 0 ? (
                 <>
@@ -125,28 +125,30 @@ export function OrganizationsView({ data, rangeStart }: { data: OrganizationResu
             </p>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-            <div className="bg-bg-default border border-border-default rounded-md text-center py-7 px-5">
-              <div className="text-[13px] font-medium text-fg-muted uppercase tracking-[0.5px] mb-3">Current billing (PRUs)</div>
-              <div className="text-4xl font-bold leading-[1.2] text-fg-default">{formatUsd(totals.netAmount)}</div>
-              <div className="text-sm text-fg-default mt-1.5">{totals.requests.toLocaleString()} PRUs</div>
-              <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
-              <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
-                <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
-                  <span>Consumed PRUs</span>
-                  <span>{formatUsd(totals.grossAmount)}</span>
+          <div className={`grid grid-cols-1 ${hasPruUsage ? 'sm:grid-cols-2' : ''} gap-4 mb-3`}>
+            {hasPruUsage && (
+              <div className="bg-bg-default border border-border-default rounded-md text-center py-7 px-5">
+                <div className="text-[13px] font-medium text-fg-muted uppercase tracking-[0.5px] mb-3">Current billing (PRUs)</div>
+                <div className="text-4xl font-bold leading-[1.2] text-fg-default">{formatUsd(totals.netAmount)}</div>
+                <div className="text-sm text-fg-default mt-1.5">{totals.requests.toLocaleString()} PRUs</div>
+                <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
+                <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
+                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
+                    <span>Consumed PRUs</span>
+                    <span>{formatUsd(totals.grossAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
+                    <span>Included PRUs</span>
+                    <span>−{formatUsd(totals.discountAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
+                    <span>Overages</span>
+                    <span>{formatUsd(totals.netAmount)}</span>
+                  </div>
+                  <ExistingDiscountDisclaimer />
                 </div>
-                <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
-                  <span>Included PRUs</span>
-                  <span>−{formatUsd(totals.discountAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
-                  <span>Overages</span>
-                  <span>{formatUsd(totals.netAmount)}</span>
-                </div>
-                <ExistingDiscountDisclaimer />
               </div>
-            </div>
+            )}
             <div className="bg-bg-default border border-border-default rounded-md text-center py-7 px-5">
               <div className="text-[13px] font-medium text-fg-muted uppercase tracking-[0.5px] mb-3">Usage-based billing (AICs)</div>
               <div className="text-4xl font-bold leading-[1.2] text-app-savings-fg">{formatUsd(totals.aicNetAmount)}</div>
@@ -222,11 +224,11 @@ export function OrganizationsView({ data, rangeStart }: { data: OrganizationResu
               <thead>
                 <tr>
                   <th className={th}>{activeTable === 'users' ? 'User' : 'Model'}</th>
-                  <th className={thNum}>PRUs</th>
-                  <th className={thNum}>PRU Cost</th>
+                  {hasPruUsage && <th className={thNum}>PRUs</th>}
+                  {hasPruUsage && <th className={thNum}>PRU Cost</th>}
                   <th className={thNum}>AICs</th>
                   <th className={thNum}>AIC Cost</th>
-                  <th className={thNum}>Difference</th>
+                  {hasPruUsage && <th className={thNum}>Difference</th>}
                 </tr>
               </thead>
               <tbody>
@@ -235,13 +237,15 @@ export function OrganizationsView({ data, rangeStart }: { data: OrganizationResu
                   return (
                     <tr key={row.label}>
                       <td className={`${td} font-semibold text-fg-default`}>{row.label}</td>
-                      <td className={tdNum}>{row.totals.requests.toLocaleString()}</td>
-                      <td className={tdNum}>{formatUsd(row.totals.netAmount)}</td>
+                      {hasPruUsage && <td className={tdNum}>{row.totals.requests.toLocaleString()}</td>}
+                      {hasPruUsage && <td className={tdNum}>{formatUsd(row.totals.netAmount)}</td>}
                       <td className={tdNum}>{formatAic(row.totals.aicQuantity)}</td>
                       <td className={tdNum}>{formatUsd(row.totals.aicNetAmount)}</td>
-                      <td className={`${tdNum}${diff > 0 ? ' text-app-savings-fg font-semibold' : diff < 0 ? ' text-fg-danger font-semibold' : ''}`}>
-                        {formatDifference(diff)}
-                      </td>
+                      {hasPruUsage && (
+                        <td className={`${tdNum}${diff > 0 ? ' text-app-savings-fg font-semibold' : diff < 0 ? ' text-fg-danger font-semibold' : ''}`}>
+                          {formatDifference(diff)}
+                        </td>
+                      )}
                     </tr>
                   )
                 })}

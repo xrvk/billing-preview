@@ -26,6 +26,7 @@ type ModelsViewProps = {
   isIndividualReport: boolean
   rangeStart: string | null
   rangeEnd: string | null
+  hasPruUsage?: boolean
 }
 
 type ModelDriverRow = {
@@ -81,7 +82,7 @@ function getModelDriverSummary(modelUsage: ModelUsageResult): ModelDriverSummary
   }
 }
 
-export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEnd }: ModelsViewProps) {
+export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEnd, hasPruUsage = true }: ModelsViewProps) {
   const [selectedModel, setSelectedModel] = useState<string>(modelUsage.models[0] ?? '')
 
   const modelDriverSummary = useMemo(
@@ -189,7 +190,7 @@ export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEn
         const savings = calculateSavingsDifference(selectedModelTotals.netAmount, selectedModelAicNetAmount)
         return (
           <>
-            {periodLabel && (
+            {hasPruUsage && periodLabel && (
               <p className="text-base font-normal text-center mb-1 text-fg-default">
                 {savings > 0 ? (
                   <><strong>{selectedModel}</strong>'s <strong>{periodLabel}</strong> usage would cost{' '}<strong>{formatUsd(savings)} less</strong> under usage-based billing</>
@@ -201,28 +202,30 @@ export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEn
               </p>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
-              <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 text-center py-7">
-                <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wide mb-3">Current billing (PRUs)</div>
-                <div className="text-4xl font-bold leading-tight text-fg-default">{formatUsd(selectedModelTotals.netAmount)}</div>
-                <div className="text-sm text-fg-default mt-1.5">{selectedModelTotals.requests.toLocaleString()} PRUs</div>
-                <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
-                <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
-                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
-                    <span>Consumed PRUs</span>
-                    <span>{formatUsd(selectedModelTotals.grossAmount)}</span>
+            <div className={`grid grid-cols-1 ${hasPruUsage ? 'sm:grid-cols-2' : ''} gap-4 mb-3`}>
+              {hasPruUsage && (
+                <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 text-center py-7">
+                  <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wide mb-3">Current billing (PRUs)</div>
+                  <div className="text-4xl font-bold leading-tight text-fg-default">{formatUsd(selectedModelTotals.netAmount)}</div>
+                  <div className="text-sm text-fg-default mt-1.5">{selectedModelTotals.requests.toLocaleString()} PRUs</div>
+                  <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
+                  <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
+                    <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
+                      <span>Consumed PRUs</span>
+                      <span>{formatUsd(selectedModelTotals.grossAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
+                      <span>Included PRUs</span>
+                      <span>−{formatUsd(selectedModelTotals.discountAmount)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
+                      <span>Overages</span>
+                      <span>{formatUsd(selectedModelTotals.netAmount)}</span>
+                    </div>
+                    {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
                   </div>
-                  <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
-                    <span>Included PRUs</span>
-                    <span>−{formatUsd(selectedModelTotals.discountAmount)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
-                    <span>Overages</span>
-                    <span>{formatUsd(selectedModelTotals.netAmount)}</span>
-                  </div>
-                  {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
                 </div>
-              </div>
+              )}
               <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 text-center py-7">
                 <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wide mb-3">Usage-based billing (AICs)</div>
                 <div className="text-4xl font-bold leading-tight text-app-savings-fg">{formatUsd(selectedModelAicNetAmount)}</div>
@@ -272,34 +275,38 @@ export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEn
             </p>
           </div>
           <DualAxisLineChart
-            title={`Daily Requests & AI Credits (${selectedModel})`}
+            title={hasPruUsage ? `Daily Requests & AI Credits (${selectedModel})` : `Daily AI Credits (${selectedModel})`}
             labels={filledPerModelDailyData.map((day) => day.date)}
             series={[
-              {
-                label: 'Premium Requests',
-                color: '#6366f1',
-                data: filledPerModelDailyData.map((day) => day.requests),
-                yAxisID: 'y',
-              },
+              ...(hasPruUsage
+                ? [{
+                    label: 'Premium Requests',
+                    color: '#6366f1',
+                    data: filledPerModelDailyData.map((day) => day.requests),
+                    yAxisID: 'y' as const,
+                  }]
+                : []),
               {
                 label: 'AI Credits',
                 color: '#22c55e',
                 data: filledPerModelDailyData.map((day) => day.aicQuantity),
-                yAxisID: 'y1',
+                yAxisID: hasPruUsage ? 'y1' : 'y',
               },
             ]}
             height={320}
           />
           <DualAxisLineChart
-            title={`Daily Gross Breakdown (${selectedModel})`}
+            title={hasPruUsage ? `Daily Gross Breakdown (${selectedModel})` : `Daily AIC Gross Cost (${selectedModel})`}
             labels={filledPerModelDailyData.map((day) => day.date)}
             series={[
-              {
-                label: 'PRU Gross Cost',
-                color: '#f59e0b',
-                data: filledPerModelDailyData.map((day) => day.grossAmount),
-                yAxisID: 'y',
-              },
+              ...(hasPruUsage
+                ? [{
+                    label: 'PRU Gross Cost',
+                    color: '#f59e0b',
+                    data: filledPerModelDailyData.map((day) => day.grossAmount),
+                    yAxisID: 'y' as const,
+                  }]
+                : []),
               {
                 label: 'AIC Gross Cost',
                 color: '#06b6d4',

@@ -25,6 +25,7 @@ type CostManagementViewProps = {
   upgradeRecommendation?: IndividualPlanUpgradeRecommendation | null
   dailyUsageData: DailyUsageData[]
   onBudgetValueChange: (field: BudgetField, value: string) => void
+  hasPruUsage?: boolean
 }
 
 const INDIVIDUAL_BUDGET_FIELDS: Array<{ field: BudgetField; label: string; description: string }> = [
@@ -89,6 +90,7 @@ export function CostManagementView({
   upgradeRecommendation = null,
   dailyUsageData,
   onBudgetValueChange,
+  hasPruUsage = true,
 }: CostManagementViewProps) {
   const partialPeriodCoverage = useMemo(() => computePartialPeriodCoverage(dailyUsageData), [dailyUsageData])
 
@@ -112,6 +114,7 @@ export function CostManagementView({
         aicGrossAmount={currentAicGrossAmount}
         aicDiscountAmount={currentAicDiscountAmount}
         aicQuantity={currentAicQuantity}
+        hasPruUsage={hasPruUsage}
         licenseAmount={licenseAmount}
         licenseSeatCounts={licenseSeatCounts}
         showExistingDiscountDisclaimer={!isIndividualReport}

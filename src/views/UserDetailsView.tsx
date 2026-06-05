@@ -64,6 +64,7 @@ export interface UserDetailsViewProps {
   rangeStart?: string | null
   rangeEnd?: string | null
   onBackToUsers?: () => void
+  hasPruUsage?: boolean
 }
 
 export function UserDetailsView({
@@ -73,6 +74,7 @@ export function UserDetailsView({
   rangeStart,
   rangeEnd,
   onBackToUsers,
+  hasPruUsage = true,
 }: UserDetailsViewProps) {
   const activeDailyEntries = useMemo(() => {
     if (!user) return []
@@ -112,7 +114,17 @@ export function UserDetailsView({
     }))
   }, [chartDailyEntries, modelNames])
 
-  const cumulativeNetCostSeries = useMemo<[LineSeries, LineSeries]>(() => {
+  const cumulativeNetCostSeries = useMemo<LineSeries[]>(() => {
+    const aicSeriesItem: LineSeries = {
+      label: 'AIC Net Cost',
+      color: '#54aeff',
+      data: chartDailyEntries.reduce<number[]>((acc, day) => {
+        acc.push((acc[acc.length - 1] ?? 0) + day.aicNetAmount)
+        return acc
+      }, []),
+      yAxisID: 'y',
+    }
+    if (!hasPruUsage) return [aicSeriesItem]
     return [
       {
         label: 'PRU Net Cost',
@@ -123,17 +135,9 @@ export function UserDetailsView({
         }, []),
         yAxisID: 'y',
       },
-      {
-        label: 'AIC Net Cost',
-        color: '#54aeff',
-        data: chartDailyEntries.reduce<number[]>((acc, day) => {
-          acc.push((acc[acc.length - 1] ?? 0) + day.aicNetAmount)
-          return acc
-        }, []),
-        yAxisID: 'y',
-      },
+      aicSeriesItem,
     ]
-  }, [chartDailyEntries])
+  }, [chartDailyEntries, hasPruUsage])
 
   const dailySummaryGroups = useMemo(() => {
     const groups: DailySummaryGroup[] = []
@@ -232,7 +236,7 @@ export function UserDetailsView({
         <div className="bg-bg-default border border-border-default rounded-md p-4 text-fg-muted">No usage data for this user.</div>
       ) : (
         <>
-          {periodLabel && (
+          {hasPruUsage && periodLabel && (
             <p className="text-base font-normal text-center mb-1 text-fg-default">
               {savings > 0 ? (
                 <>
@@ -252,28 +256,30 @@ export function UserDetailsView({
             </p>
           )}
 
-          <div className="grid grid-cols-2 max-sm:grid-cols-1 gap-4 mb-3">
-            <div className="bg-bg-default border border-border-default rounded-md px-5 py-7 text-center">
-              <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wider mb-3">Current billing (PRUs)</div>
-              <div className="text-4xl font-bold leading-[1.2] text-fg-default">{formatCost(user.totals.netAmount)}</div>
-              <div className="text-sm text-fg-default mt-1.5">{user.totals.requests.toLocaleString()} PRUs</div>
-              <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
-              <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
-                <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
-                  <span>Consumed PRUs</span>
-                  <span>{formatCost(user.totals.grossAmount)}</span>
+          <div className={`grid ${hasPruUsage ? 'grid-cols-2 max-sm:grid-cols-1' : 'grid-cols-1'} gap-4 mb-3`}>
+            {hasPruUsage && (
+              <div className="bg-bg-default border border-border-default rounded-md px-5 py-7 text-center">
+                <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wider mb-3">Current billing (PRUs)</div>
+                <div className="text-4xl font-bold leading-[1.2] text-fg-default">{formatCost(user.totals.netAmount)}</div>
+                <div className="text-sm text-fg-default mt-1.5">{user.totals.requests.toLocaleString()} PRUs</div>
+                <div className="text-xs text-fg-muted mt-1">1 PRU = $0.04</div>
+                <div className="mt-4 pt-3 border-t border-border-default w-full flex flex-col gap-1.5 text-left">
+                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums">
+                    <span>Consumed PRUs</span>
+                    <span>{formatCost(user.totals.grossAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
+                    <span>Included PRUs</span>
+                    <span>−{formatCost(user.totals.discountAmount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
+                    <span>Overages</span>
+                    <span>{formatCost(user.totals.netAmount)}</span>
+                  </div>
+                  {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
                 </div>
-                <div className="flex justify-between items-center text-[13px] text-fg-muted tabular-nums">
-                  <span>Included PRUs</span>
-                  <span>−{formatCost(user.totals.discountAmount)}</span>
-                </div>
-                <div className="flex justify-between items-center text-[13px] text-fg-default tabular-nums pt-1.5 border-t border-border-default font-semibold">
-                  <span>Overages</span>
-                  <span>{formatCost(user.totals.netAmount)}</span>
-                </div>
-                {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
               </div>
-            </div>
+            )}
             <div className="bg-bg-default border border-border-default rounded-md px-5 py-7 text-center">
               <div className="text-[13px] font-medium text-fg-muted uppercase tracking-wider mb-3">Usage-based billing (AICs)</div>
               <div className="text-4xl font-bold leading-[1.2] text-app-savings-fg">{formatCost(user.totals.aicNetAmount)}</div>
@@ -300,12 +306,12 @@ export function UserDetailsView({
 
           <div className="grid grid-cols-1 gap-6 w-full">
             {productBreakdownRows.length > 0 && (
-              <ProductUsageTable title="Usage by Product" products={productBreakdownRows} />
+              <ProductUsageTable title="Usage by Product" products={productBreakdownRows} hasPruUsage={hasPruUsage} />
             )}
-            <MultiSeriesStackedBarChart title="Daily Requests by Model" labels={labels} series={requestSeries} height={340} />
+            {hasPruUsage && <MultiSeriesStackedBarChart title="Daily Requests by Model" labels={labels} series={requestSeries} height={340} />}
             <MultiSeriesStackedBarChart title="Daily AI Credits by Model" labels={labels} series={aicSeries} height={340} />
             <DualAxisLineChart
-              title="Cumulative net cost: PRU vs AIC"
+              title={hasPruUsage ? 'Cumulative net cost: PRU vs AIC' : 'Cumulative AIC net cost'}
               labels={labels}
               series={cumulativeNetCostSeries}
               formatYAsCurrency
@@ -319,11 +325,11 @@ export function UserDetailsView({
                 <tr>
                   <th className={th}>Date</th>
                   <th className={th}>Model</th>
-                  <th className={thNum}>PRUs</th>
+                  {hasPruUsage && <th className={thNum}>PRUs</th>}
                   <th className={thNum}>AICs</th>
-                  <th className={thNum}>PRU Net Cost</th>
+                  {hasPruUsage && <th className={thNum}>PRU Net Cost</th>}
                   <th className={thNum}>AIC Net Cost</th>
-                  <th className={thNum}>Difference</th>
+                  {hasPruUsage && <th className={thNum}>Difference</th>}
                 </tr>
               </thead>
               <tbody>
@@ -339,14 +345,16 @@ export function UserDetailsView({
                           </td>
                         )}
                         <td className={`${td} font-medium text-fg-default`}>{`- ${row.model}`}</td>
-                        <td className={tdNum}>{formatInt(row.requests)}</td>
+                        {hasPruUsage && <td className={tdNum}>{formatInt(row.requests)}</td>}
                         <td className={tdNum}>{formatAic(row.aicQuantity)}</td>
-                        <td className={tdNum}>{formatCost(row.netAmount)}</td>
+                        {hasPruUsage && <td className={tdNum}>{formatCost(row.netAmount)}</td>}
                         <td className={tdNum}>{formatCost(row.aicNetAmount)}</td>
-                        <td className={`${tdNum} font-semibold ${diff > 0 ? 'text-app-savings-fg' : diff < 0 ? 'text-app-overspend-fg' : 'text-fg-muted'}`}>
-                          {diff > 0 ? '−' : diff < 0 ? '+' : ''}
-                          {formatCost(Math.abs(diff))}
-                        </td>
+                        {hasPruUsage && (
+                          <td className={`${tdNum} font-semibold ${diff > 0 ? 'text-app-savings-fg' : diff < 0 ? 'text-app-overspend-fg' : 'text-fg-muted'}`}>
+                            {diff > 0 ? '−' : diff < 0 ? '+' : ''}
+                            {formatCost(Math.abs(diff))}
+                          </td>
+                        )}
                       </tr>
                     )
                   }),

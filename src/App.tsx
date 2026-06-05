@@ -431,6 +431,7 @@ function App() {
   }
 
   const hasReport = status === 'done' && fileName !== null
+  const hasPruUsage = (reportContext?.unitTypes ?? []).includes('requests')
   const showSeatConfirmation = hasReport && seatConfirmationPending
   const rangeStart = reportContext?.startDate ?? null
   const rangeEnd = reportContext?.endDate ?? null
@@ -685,6 +686,7 @@ function App() {
                 reportPlanScope={reportPlanScope}
                 upgradeRecommendation={individualUpgradeRecommendation}
                 onAdjustSeatCounts={reportPlanScope === 'organization' && !isIndividualReport ? () => setActiveView('users') : undefined}
+                hasPruUsage={hasPruUsage}
               />
             ) : visibleActiveView === 'models' ? (
               modelUsage && modelUsage.models.length > 0 ? (
@@ -694,6 +696,7 @@ function App() {
                     isIndividualReport={isIndividualReport}
                     rangeStart={rangeStart}
                     rangeEnd={rangeEnd}
+                    hasPruUsage={hasPruUsage}
                   />
                 </div>
               ) : null
@@ -709,6 +712,7 @@ function App() {
                       setSelectedUsername(username)
                       setActiveView('userDetails')
                    }}
+                   hasPruUsage={hasPruUsage}
                  />
                </div>
                 ) : visibleActiveView === 'userDetails' || (visibleActiveView === 'users' && isIndividualReport) ? (
@@ -720,15 +724,16 @@ function App() {
                        rangeStart={rangeStart}
                        rangeEnd={rangeEnd}
                      onBackToUsers={isIndividualReport ? undefined : () => setActiveView('users')}
+                     hasPruUsage={hasPruUsage}
                    />
                  </div>
                ) : visibleActiveView === 'costCenters' ? (
               <div className={viewContentClasses}>
-                <CostCentersView data={costCenters ?? { costCenters: [] }} rangeStart={rangeStart} />
+                <CostCentersView data={costCenters ?? { costCenters: [] }} rangeStart={rangeStart} hasPruUsage={hasPruUsage} />
               </div>
                ) : visibleActiveView === 'products' ? (
                 <div className={viewContentClasses}>
-                  <ProductsView data={productUsage ?? { products: [] }} />
+                  <ProductsView data={productUsage ?? { products: [] }} hasPruUsage={hasPruUsage} />
                 </div>
                ) : visibleActiveView === 'spendInsights' ? (
                 <div className={viewContentClasses}>
@@ -759,6 +764,7 @@ function App() {
                     upgradeRecommendation={individualUpgradeRecommendation}
                     dailyUsageData={dailyUsageData}
                     onBudgetValueChange={handleBudgetValueChange}
+                    hasPruUsage={hasPruUsage}
                   />
                 </div>
              ) : visibleActiveView === 'guide' ? (
@@ -771,7 +777,7 @@ function App() {
               </div>
             ) : (
               <div className={viewContentClasses}>
-                <OrganizationsView data={orgs ?? { organizations: [] }} rangeStart={rangeStart} />
+                <OrganizationsView data={orgs ?? { organizations: [] }} rangeStart={rangeStart} hasPruUsage={hasPruUsage} />
               </div>
             )}
           </main>

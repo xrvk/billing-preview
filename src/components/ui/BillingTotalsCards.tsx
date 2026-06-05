@@ -13,6 +13,7 @@ export type BillingTotalsCardsProps = {
   aicGrossAmount: number
   aicDiscountAmount: number
   aicQuantity: number
+  hasPruUsage?: boolean
   licenseAmount?: number
   licenseSeatCounts?: {
     business: number
@@ -34,6 +35,7 @@ export function BillingTotalsCards({
   aicGrossAmount,
   aicDiscountAmount,
   aicQuantity,
+  hasPruUsage = true,
   licenseAmount,
   licenseSeatCounts,
   showExistingDiscountDisclaimer = false,
@@ -65,8 +67,9 @@ export function BillingTotalsCards({
           )}
         </p>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-bg-default border border-border-default rounded-md px-5 py-[28px] text-center">
+      <div className={`grid grid-cols-1 ${hasPruUsage ? 'sm:grid-cols-2' : ''} gap-4`}>
+        {hasPruUsage && (
+          <div className="bg-bg-default border border-border-default rounded-md px-5 py-[28px] text-center">
           <div className="text-[13px] font-medium text-fg-muted uppercase tracking-[0.5px] mb-3">Current billing (PRUs)</div>
           <div className="text-4xl font-bold leading-[1.2] text-fg-default">{formatUsd(pruTotalAmount)}</div>
           <div className="text-sm text-fg-default mt-[6px]">{pruQuantity.toLocaleString()} PRUs</div>
@@ -105,6 +108,7 @@ export function BillingTotalsCards({
             </div>
           </div>
         </div>
+        )}
         <div className="bg-bg-default border border-border-default rounded-md px-5 py-[28px] text-center">
           <div className="text-[13px] font-medium text-fg-muted uppercase tracking-[0.5px] mb-3">Usage-based billing (AICs)</div>
           <div className="text-4xl font-bold leading-[1.2] text-app-savings-fg">{formatUsd(aicTotalAmount)}</div>

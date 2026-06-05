@@ -50,9 +50,10 @@ export interface UsersViewProps {
   seatOverrides?: SeatOverrides
   onSeatOverridesChange?: (overrides: SeatOverrides) => void
   onSelectUser?: (username: string) => void
+  hasPruUsage?: boolean
 }
 
-export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, onSelectUser }: UsersViewProps) {
+export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, onSelectUser, hasPruUsage = true }: UsersViewProps) {
   const [query, setQuery] = useState('')
   const [pageAnchor, setPageAnchor] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>('aicQuantity')
@@ -350,12 +351,14 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
                   <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('username')}</span>
                 </button>
               </th>
-              <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('requests')}>
-                <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('requests')}>
-                  <span>PRUs</span>
-                  <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('requests')}</span>
-                </button>
-              </th>
+              {hasPruUsage && (
+                <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('requests')}>
+                  <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('requests')}>
+                    <span>PRUs</span>
+                    <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('requests')}</span>
+                  </button>
+                </th>
+              )}
               <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('aicQuantity')}>
                 <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('aicQuantity')}>
                   <span>AICs</span>
@@ -368,24 +371,28 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
                   <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('distinctModels')}</span>
                 </button>
               </th>
-              <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('netAmount')}>
-                <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('netAmount')}>
-                  <span>PRU Net Cost</span>
-                  <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('netAmount')}</span>
-                </button>
-              </th>
+              {hasPruUsage && (
+                <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('netAmount')}>
+                  <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('netAmount')}>
+                    <span>PRU Net Cost</span>
+                    <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('netAmount')}</span>
+                  </button>
+                </th>
+              )}
               <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('aicNetAmount')}>
                 <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('aicNetAmount')}>
                   <span>AIC Net Cost</span>
                   <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('aicNetAmount')}</span>
                 </button>
               </th>
-              <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('difference')}>
-                <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('difference')}>
-                  <span>Difference</span>
-                  <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('difference')}</span>
-                </button>
-              </th>
+              {hasPruUsage && (
+                <th className={`${thBase} text-right select-none`} aria-sort={getAriaSort('difference')}>
+                  <button type="button" className={`${sortBtn} justify-end`} onClick={() => handleSort('difference')}>
+                    <span>Difference</span>
+                    <span className="min-w-[2ch]" aria-hidden="true">{sortIndicator('difference')}</span>
+                  </button>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -410,14 +417,16 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
                   tabIndex={onSelectUser ? 0 : undefined}
                 >
                   <td className={`${td} font-semibold text-fg-default`}>{user.username}</td>
-                  <td className={tdNum}>{formatInt(user.totals.requests)}</td>
+                  {hasPruUsage && <td className={tdNum}>{formatInt(user.totals.requests)}</td>}
                   <td className={tdNum}>{formatAic(user.totals.aicQuantity)}</td>
                   <td className={tdNum}>{formatInt(user.totals.distinctModels)}</td>
-                  <td className={tdNum}>{formatCost(user.totals.netAmount)}</td>
+                  {hasPruUsage && <td className={tdNum}>{formatCost(user.totals.netAmount)}</td>}
                   <td className={tdNum}>{formatCost(user.totals.aicNetAmount)}</td>
-                  <td className={`${tdNum} font-semibold ${diff > 0 ? 'text-app-savings-fg' : diff < 0 ? 'text-app-overspend-fg' : 'text-fg-muted'}`}>
-                    {formatDifference(diff)}
-                  </td>
+                  {hasPruUsage && (
+                    <td className={`${tdNum} font-semibold ${diff > 0 ? 'text-app-savings-fg' : diff < 0 ? 'text-app-overspend-fg' : 'text-fg-muted'}`}>
+                      {formatDifference(diff)}
+                    </td>
+                  )}
                 </tr>
               )
             })}
