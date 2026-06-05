@@ -328,6 +328,60 @@ describe('AIC included credit tiering and pool sizing', () => {
     })
   })
 
+  it('zeroes the organization included AIC pool when promotional credits are excluded', async () => {
+    const file = createCsv([
+      ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '300', 'octo', 'Cats', '10', '0.10'],
+      ['2026-03-01', 'hubot', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '1000', 'octo', 'Cats', '10', '0.10'],
+    ])
+
+    await expect(calculateAicIncludedCreditsPool(file, {}, { excludePromotionalCredits: true })).resolves.toBe(0)
+  })
+
+  it('zeroes the organization pool even when overrides are present and promotional credits are excluded', async () => {
+    const file = createCsv([
+      ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '300', 'example-org', 'Cost Center A', '10', '0.10'],
+    ])
+
+    await expect(
+      calculateAicIncludedCreditsPool(file, { business: 5, enterprise: 2 }, { excludePromotionalCredits: true }),
+    ).resolves.toBe(0)
+  })
+
+  it('zeroes the license summary included AIC columns when promotional credits are excluded for an organization', () => {
+    const summary = calculateLicenseSummary(
+      [
+        { totalMonthlyQuota: 300 },
+        { totalMonthlyQuota: 300 },
+        { totalMonthlyQuota: 1000 },
+      ],
+      { excludePromotionalCredits: true },
+    )
+
+    expect(summary).toEqual({
+      rows: [
+        { label: 'Copilot Business', users: 2, includedAic: 0 },
+        { label: 'Copilot Enterprise', users: 1, includedAic: 0 },
+      ],
+      totalUsers: 3,
+      totalIncludedAic: 0,
+    })
+  })
+
+  it('zeroes the license summary included AIC for an individual report when promotional credits are excluded', () => {
+    const summary = calculateLicenseSummary(
+      [{ totalMonthlyQuota: 1500 }],
+      { excludePromotionalCredits: true },
+    )
+
+    expect(summary).toEqual({
+      rows: [
+        { label: 'Copilot Pro+', users: 1, includedAic: 0 },
+      ],
+      totalUsers: 1,
+      totalIncludedAic: 0,
+    })
+  })
+
   it('counts a single-organization user only once across multiple rows in the same cost center when sizing the pool', async () => {
     const file = createCsv([
       ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '1500', 'ai-credits', '0.01', '15.00', '0', '15.00', 'False', '300', 'example-org', 'Cost Center A', '1500', '15.00'],

@@ -61,9 +61,11 @@ export function getIndividualLicenseMonthlyCost(totalMonthlyQuota: number): numb
 export function calculateIndividualPlanUpgradeRecommendation({
   totalMonthlyQuota,
   currentMonthlyAicAdditionalUsageBillsUsd,
+  excludePromotionalCredits = false,
 }: {
   totalMonthlyQuota: number
   currentMonthlyAicAdditionalUsageBillsUsd: number[]
+  excludePromotionalCredits?: boolean
 }): IndividualPlanUpgradeRecommendation | null {
   const planTier = getIndividualPlanTier(totalMonthlyQuota, 'individual')
   if (!planTier || currentMonthlyAicAdditionalUsageBillsUsd.length === 0) {
@@ -81,11 +83,17 @@ export function calculateIndividualPlanUpgradeRecommendation({
     return null
   }
 
+  // When promotional amounts are excluded, treat every plan (current and
+  // targets) as offering zero included AI credits, so the upgrade comparison
+  // reflects the worst-case bill rather than the promotional-period math.
+  const effectiveCurrentIncludedAic = excludePromotionalCredits ? 0 : currentPlan.monthlyIncludedAic
+
   const currentAdditionalUsageAic = currentAicAdditionalUsageBillUsd / AIC_UNIT_PRICE_USD
   const recommendation = RECOMMENDABLE_INDIVIDUAL_PLANS
     .slice(currentPlanIndex + 1)
     .map((targetPlan) => {
-      const extraIncludedAic = targetPlan.monthlyIncludedAic - currentPlan.monthlyIncludedAic
+      const effectiveTargetIncludedAic = excludePromotionalCredits ? 0 : targetPlan.monthlyIncludedAic
+      const extraIncludedAic = effectiveTargetIncludedAic - effectiveCurrentIncludedAic
       const monthlyAdditionalUsageBillReductionLimitUsd = extraIncludedAic * AIC_UNIT_PRICE_USD
       const additionalUsageBillReductionUsd = currentMonthlyAicAdditionalUsageBillsUsd.reduce(
         (sum, amount) => sum + Math.min(amount, monthlyAdditionalUsageBillReductionLimitUsd),

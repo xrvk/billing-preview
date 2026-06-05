@@ -38,6 +38,10 @@ export type AicIncludedCreditsOverrides = {
   enterprise?: number
 }
 
+export type AicIncludedCreditsOptions = {
+  excludePromotionalCredits?: boolean
+}
+
 export type ReportPlanScope = 'individual' | 'organization'
 export type AicIncludedCreditTier = 'business' | 'enterprise' | null
 export type IndividualPlanTier = 'pro-student' | 'pro-plus' | null
@@ -145,11 +149,15 @@ export function getIndividualMonthlyAicIncludedCredits(
 
 export function calculateLicenseSummary(
   users: Array<{ totalMonthlyQuota: number } & ReportScopeUser>,
+  options?: AicIncludedCreditsOptions,
 ): LicenseSummary {
+  const excludePromotionalCredits = options?.excludePromotionalCredits === true
   const reportPlanScope = inferReportPlanScope(users.length, hasOrganizationContext(users))
   if (reportPlanScope === 'individual') {
     const quota = users[0]?.totalMonthlyQuota ?? 0
-    const includedAic = getIndividualMonthlyAicIncludedCredits(quota, reportPlanScope)
+    const includedAic = excludePromotionalCredits
+      ? 0
+      : getIndividualMonthlyAicIncludedCredits(quota, reportPlanScope)
 
     return {
       rows: users.length === 1
@@ -167,7 +175,9 @@ export function calculateLicenseSummary(
 
   users.forEach((user) => {
     const tier = getAicIncludedCreditTier(user.totalMonthlyQuota, reportPlanScope)
-    const includedAic = getMonthlyAicIncludedCredits(user.totalMonthlyQuota, reportPlanScope)
+    const includedAic = excludePromotionalCredits
+      ? 0
+      : getMonthlyAicIncludedCredits(user.totalMonthlyQuota, reportPlanScope)
 
     if (tier === 'business') {
       rows[0].users += 1
@@ -190,7 +200,7 @@ export function calculateLicenseSummary(
 export async function calculateAicIncludedCreditsContext(
   file: File,
   overrides: AicIncludedCreditsOverrides = {},
-  options?: AicIncludedCreditsProgressOptions,
+  options?: AicIncludedCreditsProgressOptions & AicIncludedCreditsOptions,
 ): Promise<AicIncludedCreditsContext> {
   let header: TokenUsageHeader | null = null
   const quotasByUser = new Map<string, number>()
@@ -222,12 +232,24 @@ export async function calculateAicIncludedCreditsContext(
   }
 
   const reportPlanScope = inferReportPlanScope(quotasByUser.size, hasOrganizationContext)
+  const excludePromotionalCredits = options?.excludePromotionalCredits === true
+
   if (reportPlanScope === 'individual') {
     const quota = quotasByUser.values().next().value ?? 0
     return {
       reportPlanScope,
       organizationIncludedCreditsPool: 0,
-      individualMonthlyIncludedCredits: getIndividualMonthlyAicIncludedCredits(quota, reportPlanScope),
+      individualMonthlyIncludedCredits: excludePromotionalCredits
+        ? 0
+        : getIndividualMonthlyAicIncludedCredits(quota, reportPlanScope),
+    }
+  }
+
+  if (excludePromotionalCredits) {
+    return {
+      reportPlanScope,
+      organizationIncludedCreditsPool: 0,
+      individualMonthlyIncludedCredits: 0,
     }
   }
 
@@ -246,8 +268,9 @@ export async function calculateAicIncludedCreditsContext(
 export async function calculateAicIncludedCreditsPool(
   file: File,
   overrides: AicIncludedCreditsOverrides = {},
+  options?: AicIncludedCreditsOptions,
 ): Promise<number> {
-  const includedCreditsContext = await calculateAicIncludedCreditsContext(file, overrides)
+  const includedCreditsContext = await calculateAicIncludedCreditsContext(file, overrides, options)
 
   return includedCreditsContext.organizationIncludedCreditsPool
 }
@@ -346,7 +369,7 @@ function isPreAllocatedAicRecord(record: TokenUsageRecord): boolean {
 export async function createAicIncludedCreditsAllocator(
   file: File,
   overrides: AicIncludedCreditsOverrides = {},
-  options?: AicIncludedCreditsProgressOptions,
+  options?: AicIncludedCreditsProgressOptions & AicIncludedCreditsOptions,
 ): Promise<PooledAicIncludedCreditsAllocator | IndividualAicIncludedCreditsAllocator> {
   const includedCreditsContext = await calculateAicIncludedCreditsContext(file, overrides, options)
 

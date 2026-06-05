@@ -148,3 +148,35 @@ describe('runPipeline progress', () => {
     })
   })
 })
+
+describe('runPipeline excludePromotionalCredits', () => {
+  it('leaves AIC net amount equal to gross when promotional credits are excluded', async () => {
+    // Two business-tier seats would normally cover the row through the org's
+    // included pool, dropping net to 0. With the toggle off, no included
+    // credits apply and net should equal gross.
+    const file = createCsv([
+      ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '300', 'example-org', 'Cost Center A', '10', '0.10'],
+      ['2026-03-02', 'hubot', 'copilot', 'copilot_ai_credit', 'GPT-5', '20', 'ai-credits', '0.01', '0.20', '0', '0.20', 'False', '300', 'example-org', 'Cost Center A', '20', '0.20'],
+    ])
+    const aggregator = new CaptureAggregator()
+
+    await runPipeline(file, [aggregator], { excludePromotionalCredits: true })
+
+    const records = aggregator.result()
+    expect(records).toHaveLength(2)
+    for (const record of records) {
+      expect(record.aic_net_amount).toBeCloseTo(record.aic_gross_amount)
+    }
+  })
+
+  it('still applies organization included credits by default', async () => {
+    const file = createCsv([
+      ['2026-03-01', 'mona', 'copilot', 'copilot_ai_credit', 'GPT-5', '10', 'ai-credits', '0.01', '0.10', '0', '0.10', 'False', '300', 'example-org', 'Cost Center A', '10', '0.10'],
+    ])
+    const aggregator = new CaptureAggregator()
+
+    await runPipeline(file, [aggregator])
+
+    expect(aggregator.result()[0].aic_net_amount).toBe(0)
+  })
+})

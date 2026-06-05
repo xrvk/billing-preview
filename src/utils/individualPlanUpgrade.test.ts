@@ -96,4 +96,14 @@ describe('individual plan upgrade recommendations', () => {
       currentMonthlyAicAdditionalUsageBillsUsd: [61],
     })).toBeNull()
   })
+
+  it('returns null in worst-case mode when only license cost would change', () => {
+    // With promotional credits excluded both plans offer 0 included AIC, so
+    // there is no usage-bill reduction to offset the higher license cost.
+    expect(calculateIndividualPlanUpgradeRecommendation({
+      totalMonthlyQuota: PRO_MONTHLY_QUOTA,
+      currentMonthlyAicAdditionalUsageBillsUsd: [200],
+      excludePromotionalCredits: true,
+    })).toBeNull()
+  })
 })

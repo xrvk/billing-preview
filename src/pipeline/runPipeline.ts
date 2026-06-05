@@ -29,6 +29,7 @@ export interface PipelineProgress {
 
 export interface PipelineOptions {
   includedCreditsOverrides?: AicIncludedCreditsOverrides
+  excludePromotionalCredits?: boolean
   progressResolution?: number
   onProgress?: (progress: PipelineProgress) => void
 }
@@ -66,7 +67,7 @@ export async function runPipeline(
   aggregators: Aggregator<TokenUsageRecord, unknown, TokenUsageHeader>[],
   options?: PipelineOptions,
 ): Promise<PipelineResult> {
-  const { includedCreditsOverrides = {}, progressResolution = 500, onProgress } = options ?? {}
+  const { includedCreditsOverrides = {}, excludePromotionalCredits = false, progressResolution = 500, onProgress } = options ?? {}
   await validateFileHeader(file)
   let lastProgressStage: PipelineProgress['stage'] | null = null
   let lastProgressPercent = -1
@@ -114,6 +115,7 @@ export async function runPipeline(
   }
 
   const aicIncludedCreditAllocator = await createAicIncludedCreditsAllocator(file, includedCreditsOverrides, {
+    excludePromotionalCredits,
     onProgress: (streamProgress) => {
       emitProgress('analyzing', 0, streamProgress)
     },

@@ -1,4 +1,4 @@
-import { calculateAicIncludedCreditsContext, getUsageMonthKey, type AicIncludedCreditsContext, type AicIncludedCreditsOverrides } from '../pipeline/aicIncludedCredits'
+import { calculateAicIncludedCreditsContext, getUsageMonthKey, type AicIncludedCreditsContext, type AicIncludedCreditsOptions, type AicIncludedCreditsOverrides } from '../pipeline/aicIncludedCredits'
 import { getAicUsageMetrics, getUsageMetrics, parseNormalizedTokenUsageRecord, parseTokenUsageHeader, type TokenUsageHeader, type TokenUsageRecord } from '../pipeline/parser'
 import { getProductBudgetName, isNonCopilotCodeReviewUsage, NON_COPILOT_CODE_REVIEW_USER_LABEL, type ProductBudgetName } from '../pipeline/productClassification'
 import { streamLines } from '../pipeline/streamer'
@@ -356,8 +356,9 @@ export async function runBudgetSimulation(
   file: File,
   options: BudgetSimulationOptions,
   includedCreditsOverrides: AicIncludedCreditsOverrides = {},
+  includedCreditsOptions: AicIncludedCreditsOptions = {},
 ): Promise<BudgetSimulationResult> {
-  const context = await calculateAicIncludedCreditsContext(file, includedCreditsOverrides)
+  const context = await calculateAicIncludedCreditsContext(file, includedCreditsOverrides, includedCreditsOptions)
   const state = createBudgetSimulationState(options, context)
   let header: TokenUsageHeader | null = null
 
