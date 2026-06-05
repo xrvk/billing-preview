@@ -4,6 +4,8 @@
 
 A browser app for previewing and comparing GitHub Copilot usage-based billing reports. Upload your CSV billing reports to explore requests, costs, AI Credits, and trends across users, organizations, models, and cost centers.
 
+**Live app:** <https://xrvk.github.io/billing-preview/>
+
 This fork tracks the upstream project and adds:
 
 - Support for the June 2026+ usage report schema (no `model`, `total_monthly_quota`, or `aic_*` columns; new `repository` and `workflow_path` columns).
