@@ -301,6 +301,38 @@ describe('AIC included credit tiering and pool sizing', () => {
     })
   })
 
+  it('counts only PRU-era seat markers when narrowed to the pru report format', () => {
+    const summary = calculateLicenseSummary([
+      { totalMonthlyQuota: 300 },
+      { totalMonthlyQuota: 1000 },
+      { totalMonthlyQuota: 1900 },
+      { totalMonthlyQuota: 3900 },
+    ], 'pru')
+
+    expect(summary.rows).toEqual([
+      { label: 'Copilot Business', users: 1, includedAic: 3000 },
+      { label: 'Copilot Enterprise', users: 1, includedAic: 7000 },
+    ])
+    expect(summary.totalUsers).toBe(2)
+  })
+
+  it('counts only AIC-era seat markers when narrowed to the aic report format', () => {
+    const summary = calculateLicenseSummary([
+      { totalMonthlyQuota: 300 },
+      { totalMonthlyQuota: 1000 },
+      { totalMonthlyQuota: 1900 },
+      { totalMonthlyQuota: 3000 },
+      { totalMonthlyQuota: 3900 },
+      { totalMonthlyQuota: 7000 },
+    ], 'aic')
+
+    expect(summary.rows).toEqual([
+      { label: 'Copilot Business', users: 2, includedAic: 6000 },
+      { label: 'Copilot Enterprise', users: 2, includedAic: 14000 },
+    ])
+    expect(summary.totalUsers).toBe(4)
+  })
+
   it('summarizes a single-user report as an individual plan', () => {
     const summary = calculateLicenseSummary([{ totalMonthlyQuota: 1500 }])
 

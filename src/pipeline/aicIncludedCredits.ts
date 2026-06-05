@@ -6,6 +6,7 @@ import {
   type TokenUsageRecord,
 } from './parser'
 import { streamLines, type StreamProgress } from './streamer'
+import type { ReportFormat } from '../utils/reportFormat'
 
 export const BUSINESS_MONTHLY_QUOTA = 300
 export const ENTERPRISE_MONTHLY_QUOTA = 1000
@@ -22,16 +23,40 @@ export const PRO_PLUS_MONTHLY_AIC_INCLUDED_CREDITS = 7000
 // the per-seat AIC allotment(s) are accepted as seat-type markers so the seat
 // count auth screen can prefill from either era. Per-seat AIC allotments may
 // change over time, so multiple known values are accepted per tier.
-const BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+const PRU_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
   BUSINESS_MONTHLY_QUOTA,
+])
+const PRU_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+  ENTERPRISE_MONTHLY_QUOTA,
+])
+const AIC_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
   1900,
   BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS, // 3000
 ])
-const ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
-  ENTERPRISE_MONTHLY_QUOTA,
+const AIC_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
   3900,
   ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS, // 7000
 ])
+const BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+  ...PRU_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS,
+  ...AIC_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS,
+])
+const ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+  ...PRU_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS,
+  ...AIC_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS,
+])
+
+function getBusinessMarkers(reportFormat: ReportFormat | undefined): ReadonlySet<number> {
+  if (reportFormat === 'pru') return PRU_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS
+  if (reportFormat === 'aic') return AIC_BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS
+  return BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS
+}
+
+function getEnterpriseMarkers(reportFormat: ReportFormat | undefined): ReadonlySet<number> {
+  if (reportFormat === 'pru') return PRU_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS
+  if (reportFormat === 'aic') return AIC_ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS
+  return ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS
+}
 
 export type AicIncludedCreditsOverrides = {
   business?: number
@@ -106,10 +131,11 @@ export function getPlanLabel(totalMonthlyQuota: number, reportPlanScope: ReportP
 export function getAicIncludedCreditTier(
   totalMonthlyQuota: number,
   reportPlanScope: ReportPlanScope = 'organization',
+  reportFormat?: ReportFormat,
 ): AicIncludedCreditTier {
   if (reportPlanScope !== 'organization') return null
-  if (ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS.has(totalMonthlyQuota)) return 'enterprise'
-  if (BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS.has(totalMonthlyQuota)) return 'business'
+  if (getEnterpriseMarkers(reportFormat).has(totalMonthlyQuota)) return 'enterprise'
+  if (getBusinessMarkers(reportFormat).has(totalMonthlyQuota)) return 'business'
   return null
 }
 
@@ -145,6 +171,7 @@ export function getIndividualMonthlyAicIncludedCredits(
 
 export function calculateLicenseSummary(
   users: Array<{ totalMonthlyQuota: number } & ReportScopeUser>,
+  reportFormat?: ReportFormat,
 ): LicenseSummary {
   const reportPlanScope = inferReportPlanScope(users.length, hasOrganizationContext(users))
   if (reportPlanScope === 'individual') {
@@ -166,7 +193,7 @@ export function calculateLicenseSummary(
   ]
 
   users.forEach((user) => {
-    const tier = getAicIncludedCreditTier(user.totalMonthlyQuota, reportPlanScope)
+    const tier = getAicIncludedCreditTier(user.totalMonthlyQuota, reportPlanScope, reportFormat)
     const includedAic = getMonthlyAicIncludedCredits(user.totalMonthlyQuota, reportPlanScope)
 
     if (tier === 'business') {
