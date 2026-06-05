@@ -16,6 +16,7 @@ A hosted, lightly-extended build of the upstream tool, focused on schema coverag
 - **PRU UI auto-hides when reports have no PRU data.** June reports drop request-based metering, so request columns, cards, and charts disappear instead of showing zeros.
 - **Copilot Code Review broken out as its own product.** Surfaces code-review-model usage separately from Chat and other Copilot products in the breakdowns.
 - **Fixed new-report seat-counting inputs.** Recognizes `total_monthly_quota` values of 1900/3000 (CB) and 3900/7000 (CE) so license tier and seat counts are inferred correctly on newer reports.
+- **Exclude promotional amounts toggle.** A header switch (with `?promo=0` URL param and localStorage persistence) zeroes out the per-seat included AI credits / Pro flex allotment so you can preview what a bill looks like once the [promotional period](https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises#how-do-ai-credits-work) ends.
 
 ## Features
 
