@@ -36,7 +36,8 @@ function versionManifestPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: process.env.GITHUB_PAGES_BASE ?? (command === 'build' ? '/billing-preview/' : '/'),
   define: {
     __APP_VERSION__: JSON.stringify(buildVersion),
   },
@@ -45,4 +46,4 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.ts'],
   },
-})
+}))
