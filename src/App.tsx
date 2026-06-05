@@ -35,13 +35,41 @@ import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type Bud
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
 import { clearSeatCountUrlParams, readSeatCountUrlParams } from './utils/seatCountUrlParams'
+import { readPromotionalUrlParam, writePromotionalUrlParam } from './utils/promotionalToggleUrlParam'
 import { useAppVersionCheck } from './hooks/useAppVersionCheck'
+import { PromotionalToggle } from './components/ui'
 
 type Status = 'idle' | 'processing' | 'done'
 type ActiveView = 'overview' | 'users' | 'userDetails' | 'costCenters' | 'orgs' | 'models' | 'products' | 'spendInsights' | 'costManagement' | 'guide' | 'faq'
 
 const BUSINESS_LICENSE_MONTHLY_COST = 19
 const ENTERPRISE_LICENSE_MONTHLY_COST = 39
+
+const INCLUDE_PROMOTIONAL_STORAGE_KEY = 'billing-preview:includePromotional'
+
+function readInitialIncludePromotional(): boolean {
+  if (typeof window === 'undefined') return true
+  const fromUrl = readPromotionalUrlParam(window.location.search)
+  if (fromUrl !== undefined) return fromUrl
+  try {
+    const stored = window.localStorage?.getItem(INCLUDE_PROMOTIONAL_STORAGE_KEY)
+    if (stored === '0') return false
+    if (stored === '1') return true
+  } catch {
+    // Ignore storage access failures (private mode, disabled storage, etc.)
+  }
+  return true
+}
+
+function persistIncludePromotional(includePromotional: boolean): void {
+  writePromotionalUrlParam(includePromotional)
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage?.setItem(INCLUDE_PROMOTIONAL_STORAGE_KEY, includePromotional ? '1' : '0')
+  } catch {
+    // Ignore storage write failures.
+  }
+}
 
 function App() {
   const [status, setStatus] = useState<Status>('idle')
@@ -66,6 +94,7 @@ function App() {
   const [seatConfirmationError, setSeatConfirmationError] = useState<string | null>(null)
   const [isApplyingSeatConfirmation, setIsApplyingSeatConfirmation] = useState(false)
   const [seatConfirmationInitial, setSeatConfirmationInitial] = useState<{ business?: number; enterprise?: number }>({})
+  const [includePromotional, setIncludePromotionalState] = useState<boolean>(() => readInitialIncludePromotional())
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const currentFileRef = useRef<File | null>(null)
   const latestRunIdRef = useRef(0)
@@ -104,6 +133,7 @@ function App() {
   const buildReportData = useCallback(async (
     file: File,
     includedCreditsOverrides: AicIncludedCreditsOverrides = {},
+    excludePromotionalCredits = false,
     onProgress?: (progressInfo: { rowsProcessed: number; progressPercent: number }) => void,
   ) => {
     const statsAggregator = new QuickStatsAggregator()
@@ -126,6 +156,7 @@ function App() {
       userAggregator,
     ], {
       includedCreditsOverrides,
+      excludePromotionalCredits,
       progressResolution: 500,
       onProgress,
     })
@@ -247,7 +278,7 @@ function App() {
     }
 
     try {
-      const nextData = await buildReportData(file, resolvedOverrides)
+      const nextData = await buildReportData(file, resolvedOverrides, !includePromotional)
       if (runId !== latestRunIdRef.current) return false
 
       applyProcessedData(nextData)
@@ -263,7 +294,7 @@ function App() {
       }
       return false
     }
-  }, [applyProcessedData, buildReportData, compactSeatOverrides, resolveIncludedCreditOverrides])
+  }, [applyProcessedData, buildReportData, compactSeatOverrides, includePromotional, resolveIncludedCreditOverrides])
 
   const handleProcess = useCallback(async (file: File) => {
     currentFileRef.current = file
@@ -272,7 +303,7 @@ function App() {
     resetReportState({ status: 'processing', fileName: file.name })
 
     try {
-      const nextData = await buildReportData(file, {}, (progressInfo) => {
+      const nextData = await buildReportData(file, {}, !includePromotional, (progressInfo) => {
         if (runId !== latestRunIdRef.current) return
         setRowsProcessed(progressInfo.rowsProcessed)
         setProgress(progressInfo.progressPercent)
@@ -352,7 +383,29 @@ function App() {
       setProgress(0)
       setRowsProcessed(0)
     }
-  }, [applyProcessedData, buildReportData, computeDefaultSeatCountsFromUsers, handleSeatOverridesChange, resetReportState])
+  }, [applyProcessedData, buildReportData, computeDefaultSeatCountsFromUsers, handleSeatOverridesChange, includePromotional, resetReportState])
+
+  const handleIncludePromotionalChange = useCallback(async (nextIncludePromotional: boolean) => {
+    if (nextIncludePromotional === includePromotional) return
+    setIncludePromotionalState(nextIncludePromotional)
+    persistIncludePromotional(nextIncludePromotional)
+
+    const file = currentFileRef.current
+    if (!file) return
+
+    const runId = ++latestRunIdRef.current
+    latestSimulationIdRef.current += 1
+    const resolvedOverrides = resolveIncludedCreditOverrides(seatOverrides)
+
+    try {
+      const nextData = await buildReportData(file, resolvedOverrides, !nextIncludePromotional)
+      if (runId !== latestRunIdRef.current) return
+      applyProcessedData(nextData)
+    } catch (err) {
+      if (runId !== latestRunIdRef.current) return
+      setError(err instanceof Error ? err.message : 'Failed to recalculate usage-based billing.')
+    }
+  }, [applyProcessedData, buildReportData, includePromotional, resolveIncludedCreditOverrides, seatOverrides])
 
   const handleSeatConfirmationApply = useCallback(async (counts: { business: number; enterprise: number }) => {
     setIsApplyingSeatConfirmation(true)
@@ -496,6 +549,7 @@ function App() {
     ? calculateIndividualPlanUpgradeRecommendation({
         totalMonthlyQuota: individualUser.totalMonthlyQuota,
         currentMonthlyAicAdditionalUsageBillsUsd: monthlyAicAdditionalUsageBills,
+        excludePromotionalCredits: !includePromotional,
       })
     : null
 
@@ -521,13 +575,21 @@ function App() {
           <GraphIcon size={32} className="block text-white" aria-hidden />
           <span className="text-lg font-semibold text-white tracking-tight max-sm:text-xs">xrvk's Billing Preview</span>
         </div>
-        {hasReport && (
-          <div className="flex items-center max-sm:w-full">
-            <button type="button" className="border border-border-emphasis rounded-md bg-transparent text-white px-4 py-2 text-sm font-medium cursor-pointer transition-colors whitespace-nowrap hover:bg-white/[0.08] hover:border-border-emphasis focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 max-sm:w-full max-sm:text-center" onClick={resetToUploadView}>
-              Upload new report
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-4 flex-wrap max-sm:w-full max-sm:justify-between">
+          {hasReport && (
+            <PromotionalToggle
+              includePromotional={includePromotional}
+              onChange={(next) => { void handleIncludePromotionalChange(next) }}
+            />
+          )}
+          {hasReport && (
+            <div className="flex items-center max-sm:w-full">
+              <button type="button" className="border border-border-emphasis rounded-md bg-transparent text-white px-4 py-2 text-sm font-medium cursor-pointer transition-colors whitespace-nowrap hover:bg-white/[0.08] hover:border-border-emphasis focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2 max-sm:w-full max-sm:text-center" onClick={resetToUploadView}>
+                Upload new report
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       {hasReport ? (
@@ -685,6 +747,7 @@ function App() {
                 licenseSeatCounts={licenseSeatCounts}
                 reportPlanScope={reportPlanScope}
                 upgradeRecommendation={individualUpgradeRecommendation}
+                includePromotional={includePromotional}
                 onAdjustSeatCounts={reportPlanScope === 'organization' && !isIndividualReport ? () => setActiveView('users') : undefined}
                 hasPruUsage={hasPruUsage}
               />
@@ -696,6 +759,7 @@ function App() {
                     isIndividualReport={isIndividualReport}
                     rangeStart={rangeStart}
                     rangeEnd={rangeEnd}
+                    includePromotional={includePromotional}
                     hasPruUsage={hasPruUsage}
                   />
                 </div>
@@ -705,6 +769,7 @@ function App() {
                   <UsersView
                     users={reportUsers}
                     seatOverrides={seatOverrides}
+                    includePromotional={includePromotional}
                     onSeatOverridesChange={(overrides) => {
                       void handleSeatOverridesChange(overrides)
                     }}
@@ -723,6 +788,7 @@ function App() {
                        showUsersBreadcrumb={!isIndividualReport}
                        rangeStart={rangeStart}
                        rangeEnd={rangeEnd}
+                       includePromotional={includePromotional}
                      onBackToUsers={isIndividualReport ? undefined : () => setActiveView('users')}
                      hasPruUsage={hasPruUsage}
                    />
@@ -762,6 +828,7 @@ function App() {
                     licenseAmount={licenseAmount}
                     licenseSeatCounts={licenseSeatCounts}
                     upgradeRecommendation={individualUpgradeRecommendation}
+                    includePromotional={includePromotional}
                     dailyUsageData={dailyUsageData}
                     onBudgetValueChange={handleBudgetValueChange}
                     hasPruUsage={hasPruUsage}

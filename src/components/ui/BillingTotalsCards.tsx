@@ -21,6 +21,7 @@ export type BillingTotalsCardsProps = {
   }
   showExistingDiscountDisclaimer?: boolean
   showPromotionalDataDisclaimer?: boolean
+  includePromotional?: boolean
   upgradeRecommendation?: IndividualPlanUpgradeRecommendation | null
   onAdjustSeatCounts?: () => void
   className?: string
@@ -40,6 +41,7 @@ export function BillingTotalsCards({
   licenseSeatCounts,
   showExistingDiscountDisclaimer = false,
   showPromotionalDataDisclaimer = false,
+  includePromotional = true,
   upgradeRecommendation = null,
   onAdjustSeatCounts,
   className = '',
@@ -144,11 +146,11 @@ export function BillingTotalsCards({
                   )}
                   {showExistingDiscountDisclaimer && (
                     <>
-                      <ExistingDiscountDisclaimer />
-                      <PromotionalDataDisclaimer scope="organization" />
+                      {includePromotional && <ExistingDiscountDisclaimer />}
+                      <PromotionalDataDisclaimer scope="organization" excluded={!includePromotional} />
                     </>
                   )}
-                  {showPromotionalDataDisclaimer && <PromotionalDataDisclaimer />}
+                  {showPromotionalDataDisclaimer && <PromotionalDataDisclaimer excluded={!includePromotional} />}
                 </div>
               )}
             </div>

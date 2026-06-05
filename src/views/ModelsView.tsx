@@ -26,6 +26,7 @@ type ModelsViewProps = {
   isIndividualReport: boolean
   rangeStart: string | null
   rangeEnd: string | null
+  includePromotional?: boolean
   hasPruUsage?: boolean
 }
 
@@ -82,7 +83,7 @@ function getModelDriverSummary(modelUsage: ModelUsageResult): ModelDriverSummary
   }
 }
 
-export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEnd, hasPruUsage = true }: ModelsViewProps) {
+export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEnd, includePromotional = true, hasPruUsage = true }: ModelsViewProps) {
   const [selectedModel, setSelectedModel] = useState<string>(modelUsage.models[0] ?? '')
 
   const modelDriverSummary = useMemo(
@@ -222,7 +223,7 @@ export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEn
                       <span>Overages</span>
                       <span>{formatUsd(selectedModelTotals.netAmount)}</span>
                     </div>
-                    {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
+                    {showExistingDiscountDisclaimer && includePromotional && <ExistingDiscountDisclaimer />}
                   </div>
                 </div>
               )}
@@ -244,7 +245,11 @@ export function ModelsView({ modelUsage, isIndividualReport, rangeStart, rangeEn
                     <span>Additional usage</span>
                     <span>{formatUsd(selectedModelAicNetAmount)}</span>
                   </div>
-                  {showExistingDiscountDisclaimer ? <ExistingDiscountDisclaimer /> : <PromotionalDataDisclaimer />}
+                  {showExistingDiscountDisclaimer
+                    ? (includePromotional
+                      ? <ExistingDiscountDisclaimer />
+                      : <PromotionalDataDisclaimer scope="organization" excluded />)
+                    : <PromotionalDataDisclaimer excluded={!includePromotional} />}
                 </div>
               </div>
             </div>

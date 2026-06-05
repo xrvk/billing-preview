@@ -48,12 +48,13 @@ function getSortValue(user: UserUsage, key: SortKey): number | string {
 export interface UsersViewProps {
   users: UserUsage[]
   seatOverrides?: SeatOverrides
+  includePromotional?: boolean
   onSeatOverridesChange?: (overrides: SeatOverrides) => void
   onSelectUser?: (username: string) => void
   hasPruUsage?: boolean
 }
 
-export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, onSelectUser, hasPruUsage = true }: UsersViewProps) {
+export function UsersView({ users, seatOverrides = {}, includePromotional = true, onSeatOverridesChange, onSelectUser, hasPruUsage = true }: UsersViewProps) {
   const [query, setQuery] = useState('')
   const [pageAnchor, setPageAnchor] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>('aicQuantity')
@@ -88,8 +89,8 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
 
   const adjustedSummary = useMemo(() => {
     if (reportPlanScope === 'individual') return licenseSummary
-    const bAic = displayBusiness * BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS
-    const eAic = displayEnterprise * ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS
+    const bAic = includePromotional ? displayBusiness * BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS : 0
+    const eAic = includePromotional ? displayEnterprise * ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS : 0
     return {
       rows: [
         { label: 'Copilot Business', users: displayBusiness, includedAic: bAic },
@@ -98,7 +99,7 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
       totalUsers: displayBusiness + displayEnterprise,
       totalIncludedAic: bAic + eAic,
     }
-  }, [licenseSummary, displayBusiness, displayEnterprise, reportPlanScope])
+  }, [licenseSummary, displayBusiness, displayEnterprise, includePromotional, reportPlanScope])
 
   const handleEdit = () => {
     setDraftBusiness(String(savedBusiness))
@@ -296,7 +297,12 @@ export function UsersView({ users, seatOverrides = {}, onSeatOverridesChange, on
             <br />
             You can <strong>add</strong> missing Copilot Business and Copilot Enterprise licenses for accurate bill estimation.
           </p>
-          {displayBusiness > 0 && (
+          {!includePromotional && reportPlanScope === 'organization' && (
+            <p>
+              Promotional amounts are excluded from this simulation, so the included AIC pool is reported as <strong>0</strong>.
+            </p>
+          )}
+          {includePromotional && displayBusiness > 0 && (
             <p>
               Upgrading Copilot Business users to Copilot Enterprise during the promotional period reduces the additional usage cost by <strong>$20</strong> per upgrade.
             </p>

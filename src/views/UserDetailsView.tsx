@@ -63,6 +63,7 @@ export interface UserDetailsViewProps {
   showUsersBreadcrumb?: boolean
   rangeStart?: string | null
   rangeEnd?: string | null
+  includePromotional?: boolean
   onBackToUsers?: () => void
   hasPruUsage?: boolean
 }
@@ -73,6 +74,7 @@ export function UserDetailsView({
   showUsersBreadcrumb = true,
   rangeStart,
   rangeEnd,
+  includePromotional = true,
   onBackToUsers,
   hasPruUsage = true,
 }: UserDetailsViewProps) {
@@ -276,7 +278,7 @@ export function UserDetailsView({
                     <span>Overages</span>
                     <span>{formatCost(user.totals.netAmount)}</span>
                   </div>
-                  {showExistingDiscountDisclaimer && <ExistingDiscountDisclaimer />}
+                  {showExistingDiscountDisclaimer && includePromotional && <ExistingDiscountDisclaimer />}
                 </div>
               </div>
             )}
@@ -298,7 +300,11 @@ export function UserDetailsView({
                   <span>Additional usage</span>
                   <span>{formatCost(user.totals.aicNetAmount)}</span>
                 </div>
-                {showExistingDiscountDisclaimer ? <ExistingDiscountDisclaimer /> : <PromotionalDataDisclaimer />}
+                {showExistingDiscountDisclaimer
+                  ? (includePromotional
+                    ? <ExistingDiscountDisclaimer />
+                    : <PromotionalDataDisclaimer scope="organization" excluded />)
+                  : <PromotionalDataDisclaimer excluded={!includePromotional} />}
               </div>
             </div>
           </div>

@@ -20,6 +20,7 @@ type OverviewViewProps = {
   }
   reportPlanScope?: ReportPlanScope
   upgradeRecommendation?: IndividualPlanUpgradeRecommendation | null
+  includePromotional?: boolean
   onAdjustSeatCounts?: () => void
   hasPruUsage?: boolean
 }
@@ -47,6 +48,7 @@ export function OverviewView({
   licenseSeatCounts,
   reportPlanScope = 'organization',
   upgradeRecommendation = null,
+  includePromotional = true,
   onAdjustSeatCounts,
   hasPruUsage = true,
 }: OverviewViewProps) {
@@ -148,6 +150,7 @@ export function OverviewView({
             licenseSeatCounts={licenseSeatCounts}
             showExistingDiscountDisclaimer={reportPlanScope !== 'individual'}
             showPromotionalDataDisclaimer={reportPlanScope === 'individual'}
+            includePromotional={includePromotional}
             upgradeRecommendation={upgradeRecommendation}
             onAdjustSeatCounts={onAdjustSeatCounts}
             className="mb-3"

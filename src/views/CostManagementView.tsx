@@ -23,6 +23,7 @@ type CostManagementViewProps = {
     enterprise: number
   }
   upgradeRecommendation?: IndividualPlanUpgradeRecommendation | null
+  includePromotional?: boolean
   dailyUsageData: DailyUsageData[]
   onBudgetValueChange: (field: BudgetField, value: string) => void
   hasPruUsage?: boolean
@@ -88,6 +89,7 @@ export function CostManagementView({
   licenseAmount,
   licenseSeatCounts,
   upgradeRecommendation = null,
+  includePromotional = true,
   dailyUsageData,
   onBudgetValueChange,
   hasPruUsage = true,
@@ -119,6 +121,7 @@ export function CostManagementView({
         licenseSeatCounts={licenseSeatCounts}
         showExistingDiscountDisclaimer={!isIndividualReport}
         showPromotionalDataDisclaimer={isIndividualReport}
+        includePromotional={includePromotional}
         upgradeRecommendation={upgradeRecommendation}
       />
 
