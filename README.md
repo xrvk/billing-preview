@@ -12,7 +12,7 @@ A hosted, lightly-extended build of the upstream tool, focused on schema coverag
 
 - **June 2026+ AIC schema support.** Parses the new usage report layout (no `model`, no `aic_*` columns, new `repository` and `workflow_path` columns) alongside the current preview schema. No code changes upstream yet.
 - **Cost Management rebuilt around the documented universal budget lever.** Drops the speculative carveouts and simulation; adds a single ULB control that matches what GitHub actually exposes today.
-- **`?cb=` / `?ce=` URL params.** Prefill or skip the seat-count confirmation screen for shareable, deep-linkable views.
+- **Bookmarkable seat counts via `?cb=` / `?ce=` URL params.** Skip the manual seat-count entry on every visit. If your license counts haven't changed, bookmark the URL with your CB/CE numbers and the confirmation screen is pre-filled or skipped on return.
 - **PRU UI auto-hides when reports have no PRU data.** June reports drop request-based metering, so request columns, cards, and charts disappear instead of showing zeros.
 - **Copilot Code Review broken out as its own product.** Surfaces code-review-model usage separately from Chat and other Copilot products in the breakdowns.
 - **Fixed new-report seat-counting inputs.** Recognizes `total_monthly_quota` values of 1900/3000 (CB) and 3900/7000 (CE) so license tier and seat counts are inferred correctly on newer reports.
