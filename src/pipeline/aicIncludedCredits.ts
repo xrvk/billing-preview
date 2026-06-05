@@ -17,6 +17,22 @@ export const ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS = 7000
 export const PRO_MONTHLY_AIC_INCLUDED_CREDITS = 1500
 export const PRO_PLUS_MONTHLY_AIC_INCLUDED_CREDITS = 7000
 
+// Some June 2026+ reports populate total_monthly_quota with AI-credit allotment
+// values instead of the PRU-era monthly quotas. Both the historical PRU quota and
+// the per-seat AIC allotment(s) are accepted as seat-type markers so the seat
+// count auth screen can prefill from either era. Per-seat AIC allotments may
+// change over time, so multiple known values are accepted per tier.
+const BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+  BUSINESS_MONTHLY_QUOTA,
+  1900,
+  BUSINESS_MONTHLY_AIC_INCLUDED_CREDITS, // 3000
+])
+const ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS = new Set<number>([
+  ENTERPRISE_MONTHLY_QUOTA,
+  3900,
+  ENTERPRISE_MONTHLY_AIC_INCLUDED_CREDITS, // 7000
+])
+
 export type AicIncludedCreditsOverrides = {
   business?: number
   enterprise?: number
@@ -92,8 +108,8 @@ export function getAicIncludedCreditTier(
   reportPlanScope: ReportPlanScope = 'organization',
 ): AicIncludedCreditTier {
   if (reportPlanScope !== 'organization') return null
-  if (totalMonthlyQuota === ENTERPRISE_MONTHLY_QUOTA) return 'enterprise'
-  if (totalMonthlyQuota === BUSINESS_MONTHLY_QUOTA) return 'business'
+  if (ENTERPRISE_TOTAL_MONTHLY_QUOTA_MARKERS.has(totalMonthlyQuota)) return 'enterprise'
+  if (BUSINESS_TOTAL_MONTHLY_QUOTA_MARKERS.has(totalMonthlyQuota)) return 'business'
   return null
 }
 

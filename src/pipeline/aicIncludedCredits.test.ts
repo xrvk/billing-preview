@@ -120,6 +120,22 @@ describe('AIC included credit tiering and pool sizing', () => {
     expect(getAicIncludedCreditTier(ENTERPRISE_MONTHLY_QUOTA)).toBe('enterprise')
   })
 
+  it('classifies AIC-era Copilot Business markers (1900 and 3000) as business', () => {
+    expect(getAicIncludedCreditTier(1900)).toBe('business')
+    expect(getAicIncludedCreditTier(3000)).toBe('business')
+  })
+
+  it('classifies AIC-era Copilot Enterprise markers (3900 and 7000) as enterprise', () => {
+    expect(getAicIncludedCreditTier(3900)).toBe('enterprise')
+    expect(getAicIncludedCreditTier(7000)).toBe('enterprise')
+  })
+
+  it('does not classify AIC-era markers in individual report scope', () => {
+    expect(getAicIncludedCreditTier(1900, 'individual')).toBeNull()
+    expect(getAicIncludedCreditTier(3900, 'individual')).toBeNull()
+    expect(getAicIncludedCreditTier(7000, 'individual')).toBeNull()
+  })
+
   it('does not classify individual quotas as company included credit tiers', () => {
     expect(getAicIncludedCreditTier(BUSINESS_MONTHLY_QUOTA, 'individual')).toBeNull()
     expect(getAicIncludedCreditTier(ENTERPRISE_MONTHLY_QUOTA, 'individual')).toBeNull()
