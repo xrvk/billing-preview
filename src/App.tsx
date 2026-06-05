@@ -34,6 +34,11 @@ import { runPipeline } from './pipeline/runPipeline'
 import { EMPTY_BUDGET_VALUES, getDefaultBudgetValues, type BudgetField, type BudgetValues } from './utils/costManagementBudgets'
 import { calculateIndividualPlanUpgradeRecommendation, getIndividualLicenseMonthlyCost } from './utils/individualPlanUpgrade'
 import { normalizeSeatCount } from './utils/seatCounts'
+import {
+  GENERIC_USAGE_REPORT_ERROR_MESSAGE,
+  detectReportFormatFromFileName,
+  isGenericUsageReportFileName,
+} from './utils/reportFormat'
 import { clearSeatCountUrlParams, readSeatCountUrlParams } from './utils/seatCountUrlParams'
 import { useAppVersionCheck } from './hooks/useAppVersionCheck'
 
@@ -145,8 +150,12 @@ function App() {
     }
   }, [])
 
-  const computeDefaultSeatCountsFromUsers = useCallback((users: UserUsageResult['users']) => {
-    const summary = calculateLicenseSummary(users)
+  const computeDefaultSeatCountsFromUsers = useCallback((
+    users: UserUsageResult['users'],
+    fileName: string | null,
+  ) => {
+    const reportFormat = detectReportFormatFromFileName(fileName)
+    const summary = calculateLicenseSummary(users, reportFormat)
     return {
       business: normalizeSeatCount(
         summary.rows.find((row) => row.label === 'Copilot Business')?.users ?? 0,
@@ -159,9 +168,14 @@ function App() {
     }
   }, [])
 
-  const getDefaultSeatCounts = useCallback(() => {
-    return computeDefaultSeatCountsFromUsers(userUsage?.users ?? [])
-  }, [computeDefaultSeatCountsFromUsers, userUsage])
+  const getDefaultSeatCounts = useCallback((fileNameOverride?: string | null) => {
+    // Render-time calls pass nothing and rely on the React fileName state, which
+    // is consistent with whatever has been rendered. Callbacks that fire mid-flow
+    // (before state has flushed) pass currentFileRef.current?.name explicitly so
+    // they always observe the active upload's filename.
+    const effectiveFileName = fileNameOverride !== undefined ? fileNameOverride : fileName
+    return computeDefaultSeatCountsFromUsers(userUsage?.users ?? [], effectiveFileName)
+  }, [computeDefaultSeatCountsFromUsers, fileName, userUsage])
 
   const resetReportState = useCallback(({ status, fileName }: { status: Status; fileName: string | null }) => {
     setStatus(status)
@@ -193,7 +207,7 @@ function App() {
       return {}
     }
 
-    const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts()
+    const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts(currentFileRef.current?.name ?? null)
 
     return {
       business: overrides.business === undefined
@@ -210,7 +224,7 @@ function App() {
       return {}
     }
 
-    const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts()
+    const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts(currentFileRef.current?.name ?? null)
     const compactOverrides: SeatOverrides = {}
 
     if ((overrides.business ?? defaultBusiness) > defaultBusiness) {
@@ -266,6 +280,15 @@ function App() {
   }, [applyProcessedData, buildReportData, compactSeatOverrides, resolveIncludedCreditOverrides])
 
   const handleProcess = useCallback(async (file: File) => {
+    if (isGenericUsageReportFileName(file.name)) {
+      currentFileRef.current = null
+      latestRunIdRef.current += 1
+      latestSimulationIdRef.current += 1
+      resetReportState({ status: 'idle', fileName: null })
+      setError(GENERIC_USAGE_REPORT_ERROR_MESSAGE)
+      return
+    }
+
     currentFileRef.current = file
     const runId = ++latestRunIdRef.current
     latestSimulationIdRef.current += 1
@@ -299,7 +322,7 @@ function App() {
 
       if (isOrganizationReport) {
         const urlParams = readSeatCountUrlParams(window.location.search)
-        const defaults = computeDefaultSeatCountsFromUsers(processedUsers)
+        const defaults = computeDefaultSeatCountsFromUsers(processedUsers, file.name)
         const bothProvided = urlParams.business !== undefined && urlParams.enterprise !== undefined
         const bothAtLeastDefault =
           bothProvided && urlParams.business! >= defaults.business && urlParams.enterprise! >= defaults.enterprise
@@ -358,7 +381,7 @@ function App() {
     setIsApplyingSeatConfirmation(true)
     setSeatConfirmationError(null)
     try {
-      const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts()
+      const { business: defaultBusiness, enterprise: defaultEnterprise } = getDefaultSeatCounts(currentFileRef.current?.name ?? null)
       if (counts.business === defaultBusiness && counts.enterprise === defaultEnterprise) {
         setSeatConfirmationPending(false)
         return
