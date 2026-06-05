@@ -284,12 +284,13 @@ describe('PRU gross/net/discount aggregation', () => {
     expect(sumNumbers(result.models.byModel['GPT-5'].map((day) => day.netAmount))).toBeCloseTo(result.models.totalsByModel['GPT-5'].netAmount)
   })
 
-  it('keeps product totals aligned with per-model breakdowns and uses friendly labels, including Spark', () => {
+  it('keeps product totals aligned with per-model breakdowns and uses friendly labels, including Spark and Copilot Code Review', () => {
     const result = aggregate(createFixture())
 
     expect(result.products.products.map((product) => product.product)).toEqual([
-      'Copilot',
       'Copilot Cloud Agent',
+      'Copilot',
+      'Copilot Code Review',
       'Spark',
     ])
 
@@ -299,7 +300,16 @@ describe('PRU gross/net/discount aggregation', () => {
     })
 
     const copilot = result.products.products.find((product) => product.product === 'Copilot')
-    expect(Object.keys(copilot?.models ?? {}).sort()).toEqual(['Code Review model', 'GPT-4.1', 'GPT-5'])
+    expect(Object.keys(copilot?.models ?? {}).sort()).toEqual(['GPT-4.1', 'GPT-5'])
+
+    const codeReview = result.products.products.find((product) => product.product === 'Copilot Code Review')
+    expect(codeReview).toEqual(expect.objectContaining({
+      totals: expect.objectContaining({
+        requests: 5,
+        netAmount: 1.5,
+      }),
+    }))
+    expect(Object.keys(codeReview?.models ?? {})).toEqual(['Code Review model'])
 
     const spark = result.products.products.find((product) => product.product === 'Spark')
     expect(spark).toEqual(expect.objectContaining({
@@ -331,7 +341,7 @@ describe('PRU gross/net/discount aggregation', () => {
 
     expect(result.products.products).toEqual([
       expect.objectContaining({
-        product: 'Copilot',
+        product: 'Copilot Code Review',
         totals: expect.objectContaining({
           requests: 12,
           grossAmount: 4.8,
