@@ -230,27 +230,11 @@ export function OverviewView({
 
 
           <section className="mt-8">
-            <h2 className="text-base font-semibold text-fg-default pb-[10px] border-b border-border-default mb-4">Recommended next steps</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 [&>:last-child]:col-span-full">
-              <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 flex flex-col gap-[6px]">
-                <h3 className="m-0 text-sm font-semibold text-fg-default">Set an account-level budget</h3>
-                <p className="m-0 text-[13px] text-fg-muted leading-normal flex-1">Control your total Copilot costs and prevent additional spend across your account. A top-level budget ensures spending stays within the limits you set.</p>
-                <a href={appLinks.newBillingBudget} className="inline-block mt-2 text-[13px] font-semibold text-fg-on-emphasis no-underline self-start bg-bg-success-emphasis rounded-md py-2 px-4 hover:bg-app-savings-fg hover:no-underline" target="_blank" rel="noopener noreferrer">Set account budget &rarr;</a>
-              </div>
-              <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 flex flex-col gap-[6px]">
-                <h3 className="m-0 text-sm font-semibold text-fg-default">Set per-user budgets</h3>
-                <p className="m-0 text-[13px] text-fg-muted leading-normal flex-1">Ensure every user gets the access they need while you control how included credits are distributed. User-level budgets prevent any single person from consuming an outsized share of the pool.</p>
-                <a href={appLinks.billingBudgets} className="inline-block mt-2 text-[13px] font-medium text-fg-accent no-underline self-start hover:underline" target="_blank" rel="noopener noreferrer">Manage user budgets &rarr;</a>
-              </div>
-              <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 flex flex-col gap-[6px]">
-                <h3 className="m-0 text-sm font-semibold text-fg-default">Set product-level budgets</h3>
-                <p className="m-0 text-[13px] text-fg-muted leading-normal flex-1">Your usage breakdown shows cost by product. Set budgets per product (e.g., Copilot Cloud Agent, Copilot Chat) to control spending where it matters most.</p>
-                <a href={appLinks.billingBudgets} className="inline-block mt-2 text-[13px] font-medium text-fg-accent no-underline self-start hover:underline" target="_blank" rel="noopener noreferrer">Set product budgets &rarr;</a>
-              </div>
+            <div className="grid grid-cols-1 gap-4">
               <div className="bg-bg-default border border-border-default rounded-md px-5 py-4 flex flex-col gap-[6px]">
                 <h3 className="m-0 text-sm font-semibold text-fg-default">Read the docs</h3>
                 <p className="m-0 text-[13px] text-fg-muted leading-normal flex-1">Learn how usage-based billing works and how to plan for the transition.</p>
-                <a href={appLinks.billingDocs} className="inline-block mt-2 text-[13px] font-medium text-fg-accent no-underline self-start hover:underline" target="_blank" rel="noopener noreferrer">View documentation &rarr;</a>
+                <a href="https://docs.github.com/en/copilot/concepts/billing/usage-based-billing-for-organizations-and-enterprises" className="inline-block mt-2 text-[13px] font-medium text-fg-accent no-underline self-start hover:underline" target="_blank" rel="noopener noreferrer">View documentation &rarr;</a>
               </div>
             </div>
           </section>
