@@ -15,8 +15,7 @@ A hosted, lightly-extended build of the upstream tool, focused on schema coverag
 - **`?cb=` / `?ce=` URL params.** Prefill or skip the seat-count confirmation screen for shareable, deep-linkable views.
 - **PRU UI auto-hides when reports have no PRU data.** June reports drop request-based metering, so request columns, cards, and charts disappear instead of showing zeros.
 - **Copilot Code Review broken out as its own product.** Surfaces code-review-model usage separately from Chat and other Copilot products in the breakdowns.
-- **AIC-era seat-tier markers.** Recognizes `total_monthly_quota` values of 1900/3000 (CB) and 3900/7000 (CE) for license-tier detection on newer reports.
-- **Leaner Overview.** Removed the marketing-style "pooled credits coming" and "recommended next steps" banners.
+- **Fixed new-report seat-counting inputs.** Recognizes `total_monthly_quota` values of 1900/3000 (CB) and 3900/7000 (CE) so license tier and seat counts are inferred correctly on newer reports.
 
 ## Features
 
